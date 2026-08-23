@@ -176,3 +176,9 @@ document.getElementById('changePinBtn1').addEventListener('click', resetToPin);
 document.getElementById('changePinBtn2').addEventListener('click', resetToPin);
 
 showScreen('pin');
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
