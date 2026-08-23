@@ -19,6 +19,40 @@ function findOpenVisit(staffId) {
   return db.prepare('SELECT * FROM visits WHERE staff_id = ? AND out_time IS NULL ORDER BY in_time DESC LIMIT 1').get(staffId);
 }
 
+// Haversine distance in meters between two lat/lng points
+function distanceMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Finds shops previously visited (by ANY staff under this distributor) near the given GPS point,
+// so a returning staff member doesn't have to retype the same shop's details.
+router.get('/nearby-shops', (req, res) => {
+  const { distributor_id, lat, lng, radius } = req.query;
+  if (!distributor_id || !lat || !lng) return res.status(400).json({ error: 'distributor_id, lat, lng required' });
+  const radiusM = Number(radius) || 100;
+
+  const candidates = db.prepare(`
+    SELECT shop_name, shop_type, outlet_status, location_text, segment, contact_number, latitude, longitude, MAX(in_time) as last_visit
+    FROM visits
+    WHERE distributor_id = ? AND latitude IS NOT NULL AND longitude IS NOT NULL
+    GROUP BY shop_name
+    ORDER BY last_visit DESC
+  `).all(distributor_id);
+
+  const nearby = candidates
+    .map(c => ({ ...c, distance_m: Math.round(distanceMeters(Number(lat), Number(lng), c.latitude, c.longitude)) }))
+    .filter(c => c.distance_m <= radiusM)
+    .sort((a, b) => a.distance_m - b.distance_m)
+    .slice(0, 5);
+
+  res.json(nearby);
+});
+
 // Step 1: staff enters their 4-digit PIN. Returns staff identity + whether a shop is
 // currently "open" (checked IN but not yet checked OUT), so the frontend knows which
 // form to show next.
