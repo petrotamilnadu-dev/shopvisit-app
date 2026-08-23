@@ -30,6 +30,14 @@
     <button type="submit" class="block" style="margin-top:18px;">Continue</button>
   </form>
 
+  <!-- SCREEN 1.5: Nearby shop picker (shown after GPS check, before IN form) -->
+  <form id="shopPickerForm" class="card" style="display:none;">
+    <p class="small" style="margin-top:0;">Found shop(s) near your current location — tap one if you're visiting it again, or add a new shop.</p>
+    <div id="nearbyShopsList"></div>
+    <button type="button" id="newShopBtn" class="secondary block" style="margin-top:14px;">+ Add a New Shop</button>
+    <button type="button" id="changePinBtn0" class="secondary block" style="margin-top:10px;">Not you? Change PIN</button>
+  </form>
+
   <!-- SCREEN 2: Shop IN form -->
   <form id="inForm" class="card" style="display:none;">
     <p class="small" style="margin-top:0;">New Shop Visit — <b>IN Time</b></p>
