@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Shop Visit App</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="top">
+  <h1>Shop Visit App — Admin</h1>
+  <div class="sub" id="whoami">Loading...</div>
+</header>
+<div class="wrap wide">
+  <div id="msg"></div>
+
+  <div class="tabs">
+    <button data-tab="distributors" class="active">Distributors</button>
+    <button data-tab="tms">Managers (TM)</button>
+    <button data-tab="staff">Staff</button>
+    <button data-tab="users">Dashboard Logins</button>
+    <button data-tab="tools">Tools</button>
+  </div>
+
+  <!-- DISTRIBUTORS -->
+  <div id="tab-distributors" class="tabpane">
+    <div class="card">
+      <h3 style="margin-top:0;">Add Distributor</h3>
+      <div class="row">
+        <input id="distName" placeholder="Distributor name">
+        <input id="distEmail" placeholder="Email">
+      </div>
+      <button id="addDistBtn" style="margin-top:12px;">Add Distributor</button>
+    </div>
+    <div class="card" id="distList"></div>
+  </div>
+
+  <!-- TMS -->
+  <div id="tab-tms" class="tabpane" style="display:none;">
+    <div class="card">
+      <h3 style="margin-top:0;">Add Manager (TM)</h3>
+      <div class="row">
+        <input id="tmName" placeholder="TM name">
+        <input id="tmEmail" placeholder="Email">
+      </div>
+      <button id="addTmBtn" style="margin-top:12px;">Add TM</button>
+    </div>
+    <div class="card" id="tmList"></div>
+  </div>
+
+  <!-- STAFF -->
+  <div id="tab-staff" class="tabpane" style="display:none;">
+    <div class="card">
+      <h3 style="margin-top:0;">Add Staff</h3>
+      <div class="row">
+        <input id="staffName" placeholder="Staff name">
+        <input id="staffPhone" placeholder="Phone (optional)">
+      </div>
+      <label for="staffDist">Distributor</label>
+      <select id="staffDist"></select>
+      <label for="staffPin">4-digit Login PIN (leave blank to auto-generate)</label>
+      <input id="staffPin" placeholder="e.g. 4821" maxlength="4" inputmode="numeric" pattern="\d{4}">
+      <button id="addStaffBtn" style="margin-top:12px;">Add Staff</button>
+    </div>
+    <div class="card" id="staffList"></div>
+  </div>
+
+  <!-- USERS -->
+  <div id="tab-users" class="tabpane" style="display:none;">
+    <div class="card">
+      <h3 style="margin-top:0;">Create Dashboard Login</h3>
+      <p class="small">Give each Distributor and TM a login so they can view their own Live Report.</p>
+      <div class="row">
+        <input id="userUsername" placeholder="Username">
+        <input id="userPassword" placeholder="Password" type="text">
+      </div>
+      <label for="userRole">Role</label>
+      <select id="userRole">
+        <option value="distributor">Distributor</option>
+        <option value="tm">TM / Manager</option>
+      </select>
+      <div id="userLinkWrap"></div>
+      <button id="addUserBtn" style="margin-top:12px;">Create Login</button>
+    </div>
+    <div class="card" id="userList"></div>
+  </div>
+
+  <!-- TOOLS -->
+  <div id="tab-tools" class="tabpane" style="display:none;">
+    <div class="card">
+      <h3 style="margin-top:0;">Send Test Daily Summary Now</h3>
+      <p class="small">Sends today's summary emails immediately, without waiting for the scheduled time. Useful to check that emails are working.</p>
+      <button id="testSummaryBtn">Send Test Summary Now</button>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">Send Test Morning Excel Report Now</h3>
+      <p class="small">Sends the Month-to-Date Excel report immediately — one to Admin (all distributors), one per TM (their assigned distributors only). Set <code>ADMIN_REPORT_EMAIL</code> in your .env first.</p>
+      <button id="testMorningReportBtn">Send Test Morning Report Now</button>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">Change My Password</h3>
+      <input id="oldPass" placeholder="Old password" type="password" style="margin-bottom:10px;">
+      <input id="newPass" placeholder="New password" type="password">
+      <button id="changePassBtn" style="margin-top:12px;">Change Password</button>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">Photo Storage</h3>
+      <p class="small">Free hosting gives limited disk space (about 1GB on Render's free tier — roughly 2,000-4,000 compressed photos). Check usage here, and clear old photos periodically to free up space. <b>This never deletes any visit data or Excel/email history — only the photo image file.</b></p>
+      <div id="storageInfo" class="small" style="margin-bottom:10px;">Loading...</div>
+      <div class="row">
+        <input id="cleanupDays" type="number" value="90" placeholder="Days">
+        <button id="cleanupBtn" class="secondary">Clear Photos Older Than X Days</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="small" style="text-align:center;">
+    <button class="link" id="logoutBtn">Logout</button>
+  </p>
+</div>
+<script src="/js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Reports — Shop Visit App</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="top">
+  <h1>Live Shop Visit Reports</h1>
+  <div class="sub" id="whoami">Loading...</div>
+</header>
+<div class="wrap wide">
+  <div id="msg"></div>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label for="fromDate">From</label>
+        <input type="date" id="fromDate">
+      </div>
+      <div>
+        <label for="toDate">To</label>
+        <input type="date" id="toDate">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="distFilter">Distributor</label>
+        <select id="distFilter"><option value="">All</option></select>
+      </div>
+      <div>
+        <label>&nbsp;</label>
+        <button type="button" id="refreshBtn" class="block">Refresh</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="stats"></div>
+
+  <div class="card" id="openVisitsCard">
+    <h3 style="margin-top:0;">🟢 Currently In a Shop (Live)</h3>
+    <div id="openVisitsList"></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Visit History</h3>
+    <div style="overflow-x:auto;">
+    <table id="visitTable">
+      <thead>
+        <tr>
+          <th>Staff</th><th>Shop</th><th>Type</th><th>Outlet</th><th>Segment</th><th>Contact</th>
+          <th>Location</th><th>IN Time</th><th>OUT Time</th><th>Orders (Ltrs)</th><th>Collection (Rs)</th>
+          <th>Active/Tertiary</th><th>Remarks</th><th>Photo</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    </div>
+    <div id="emptyState" class="small" style="display:none; padding: 20px 0; text-align:center;">No visits found for this filter.</div>
+  </div>
+
+  <p class="small" style="text-align:center;">
+    <button class="link" id="logoutBtn">Logout</button>
+  </p>
+</div>
+<script src="/js/dashboard.js"></script>
+</body>
+</html>

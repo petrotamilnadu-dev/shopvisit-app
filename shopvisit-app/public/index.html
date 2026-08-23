@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Shop Visit Entry</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="top">
+  <h1>Shop Visit Entry</h1>
+  <div class="sub" id="staffLabel">Enter your PIN to continue</div>
+</header>
+
+<div class="wrap">
+  <div id="msg"></div>
+
+  <!-- SCREEN 1: PIN entry -->
+  <form id="pinForm" class="card">
+    <label for="pin">Your 4-digit PIN</label>
+    <input id="pin" type="tel" inputmode="numeric" pattern="\d{4}" maxlength="4" placeholder="e.g. 4821" required autofocus>
+    <button type="submit" class="block" style="margin-top:18px;">Continue</button>
+  </form>
+
+  <!-- SCREEN 2: Shop IN form -->
+  <form id="inForm" class="card" style="display:none;">
+    <p class="small" style="margin-top:0;">New Shop Visit — <b>IN Time</b></p>
+
+    <label>Shop Type</label>
+    <div class="row">
+      <label style="font-weight:400;"><input type="radio" name="shop_type" value="Retailer" required> Retailer</label>
+      <label style="font-weight:400;"><input type="radio" name="shop_type" value="Mechanic"> Mechanic</label>
+    </div>
+
+    <label>Outlet Status</label>
+    <div class="row">
+      <label style="font-weight:400;"><input type="radio" name="outlet_status" value="New" required> New</label>
+      <label style="font-weight:400;"><input type="radio" name="outlet_status" value="Existing"> Existing</label>
+    </div>
+
+    <label for="shopName">Shop Name</label>
+    <input id="shopName" type="text" placeholder="e.g. Sri Ram Auto Spares" required>
+
+    <label for="location">Location</label>
+    <input id="location" type="text" placeholder="Area / landmark">
+
+    <label>Segment / Category</label>
+    <div class="row">
+      <label style="font-weight:400;"><input type="radio" name="segment" value="CVL" required> CVL</label>
+      <label style="font-weight:400;"><input type="radio" name="segment" value="PCMO"> PCMO</label>
+      <label style="font-weight:400;"><input type="radio" name="segment" value="MCO"> MCO</label>
+    </div>
+
+    <label for="contactNumber">Contact Number</label>
+    <input id="contactNumber" type="tel" inputmode="numeric" pattern="\d*" placeholder="10-digit number">
+
+    <label for="photo">Photo (GPS location auto-captured)</label>
+    <input id="photo" type="file" accept="image/*" capture="environment" required>
+    <div id="gpsStatus" class="small" style="margin-top:6px;"></div>
+
+    <button type="submit" id="checkinBtn" class="block" style="margin-top:18px;">Check IN to this Shop</button>
+    <button type="button" id="changePinBtn1" class="secondary block" style="margin-top:10px;">Not you? Change PIN</button>
+  </form>
+
+  <!-- SCREEN 3: Shop OUT form -->
+  <form id="outForm" class="card" style="display:none;">
+    <p class="small" style="margin-top:0;">
+      You have an open visit at <b id="openShopName"></b> — give <b>OUT Time</b> details to finish this visit.
+    </p>
+
+    <label for="ordersLtrs">Orders (in Ltrs)</label>
+    <input id="ordersLtrs" type="tel" inputmode="decimal" pattern="[0-9.]*" placeholder="e.g. 20">
+
+    <label for="collectionRs">Collection (in Rupees)</label>
+    <input id="collectionRs" type="tel" inputmode="decimal" pattern="[0-9.]*" placeholder="e.g. 5000">
+
+    <label for="activeTertiary">Active / Tertiary</label>
+    <input id="activeTertiary" type="text" placeholder="e.g. Active">
+
+    <label for="remarks">Remarks &amp; Feedback</label>
+    <textarea id="remarks" placeholder="Any remarks about this shop visit"></textarea>
+
+    <button type="submit" id="checkoutBtn" class="block" style="margin-top:18px;">Check OUT of this Shop</button>
+    <button type="button" id="changePinBtn2" class="secondary block" style="margin-top:10px;">Not you? Change PIN</button>
+  </form>
+
+  <p class="small" style="text-align:center;">
+    <a class="link" href="/login.html">Admin / Manager Login →</a>
+  </p>
+</div>
+
+<script src="/js/entry.js"></script>
+</body>
+</html>
