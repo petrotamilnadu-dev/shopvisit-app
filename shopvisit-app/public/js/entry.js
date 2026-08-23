@@ -1,6 +1,7 @@
 const msg = document.getElementById('msg');
 const staffLabel = document.getElementById('staffLabel');
 const pinForm = document.getElementById('pinForm');
+const shopPickerForm = document.getElementById('shopPickerForm');
 const inForm = document.getElementById('inForm');
 const outForm = document.getElementById('outForm');
 const gpsStatus = document.getElementById('gpsStatus');
@@ -17,6 +18,7 @@ function clearMsg() { msg.innerHTML = ''; }
 
 function showScreen(screen) {
   pinForm.style.display = screen === 'pin' ? 'block' : 'none';
+  shopPickerForm.style.display = screen === 'picker' ? 'block' : 'none';
   inForm.style.display = screen === 'in' ? 'block' : 'none';
   outForm.style.display = screen === 'out' ? 'block' : 'none';
 }
@@ -35,11 +37,25 @@ function resetToPin() {
   document.getElementById('pin').focus();
 }
 
+function getGpsPosition() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) return resolve(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => resolve(null),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
+}
+
 /* ---------- Screen 1: PIN verify ---------- */
 pinForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const pin = document.getElementById('pin').value.trim();
   if (!/^\d{4}$/.test(pin)) return showMsg('Enter a valid 4-digit PIN', 'err');
+  const submitBtn = pinForm.querySelector('button[type="submit"]');
+  submitBtn.disabled = true; submitBtn.textContent = 'Checking...';
+
   try {
     const res = await fetch('/api/visits/verify-pin', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin })
@@ -50,16 +66,80 @@ pinForm.addEventListener('submit', async (e) => {
     currentOpenVisit = data.openVisit;
     clearMsg();
     staffLabel.textContent = `${currentStaff.name} — ${currentStaff.distributor_name}`;
+
     if (currentOpenVisit) {
       document.getElementById('openShopName').textContent = currentOpenVisit.shop_name;
       showScreen('out');
-    } else {
-      showScreen('in');
+      return;
     }
+
+    // No open visit — check GPS for nearby shops already visited before, so staff
+    // doesn't have to retype everything for a shop they've been to before.
+    submitBtn.textContent = 'Checking location...';
+    const pos = await getGpsPosition();
+    if (pos) {
+      capturedLat = pos.lat;
+      capturedLng = pos.lng;
+      const nearbyRes = await fetch(`/api/visits/nearby-shops?distributor_id=${currentStaff.distributor_id}&lat=${pos.lat}&lng=${pos.lng}&radius=100`);
+      const nearby = nearbyRes.ok ? await nearbyRes.json() : [];
+      if (nearby.length > 0) {
+        renderNearbyShops(nearby);
+        showScreen('picker');
+        return;
+      }
+    }
+    // No GPS or no nearby matches — go straight to the blank IN form
+    showScreen('in');
   } catch (err) {
     showMsg('❌ ' + err.message, 'err');
+  } finally {
+    submitBtn.disabled = false; submitBtn.textContent = 'Continue';
   }
 });
+
+/* ---------- Screen 1.5: Nearby shop picker ---------- */
+function renderNearbyShops(shops) {
+  const list = document.getElementById('nearbyShopsList');
+  list.innerHTML = shops.map((s, i) => `
+    <button type="button" class="block secondary" style="margin-bottom:8px; text-align:left;" data-idx="${i}">
+      <b>${s.shop_name}</b><br>
+      <span class="small">${s.location_text || ''} — about ${s.distance_m}m away</span>
+    </button>
+  `).join('');
+  list.querySelectorAll('button[data-idx]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const shop = shops[Number(btn.dataset.idx)];
+      prefillInForm(shop);
+      showScreen('in');
+    });
+  });
+}
+
+function prefillInForm(shop) {
+  inForm.reset();
+  if (shop.shop_type) {
+    const el = inForm.querySelector(`input[name="shop_type"][value="${shop.shop_type}"]`);
+    if (el) el.checked = true;
+  }
+  // A shop found from a past visit is by definition an existing outlet
+  const existingEl = inForm.querySelector('input[name="outlet_status"][value="Existing"]');
+  if (existingEl) existingEl.checked = true;
+  document.getElementById('shopName').value = shop.shop_name || '';
+  document.getElementById('location').value = shop.location_text || '';
+  if (shop.segment) {
+    const segEl = inForm.querySelector(`input[name="segment"][value="${shop.segment}"]`);
+    if (segEl) segEl.checked = true;
+  }
+  document.getElementById('contactNumber').value = shop.contact_number || '';
+  gpsStatus.textContent = '✅ Location already captured for this shop.';
+}
+
+document.getElementById('newShopBtn').addEventListener('click', () => {
+  inForm.reset();
+  gpsStatus.textContent = capturedLat ? '✅ Location already captured.' : '';
+  showScreen('in');
+});
+document.getElementById('changePinBtn0').addEventListener('click', resetToPin);
 
 /* ---------- Compress photo before upload (keeps storage usage low on free hosting) ---------- */
 function compressImage(file, maxWidth = 1280, quality = 0.7) {
@@ -88,7 +168,7 @@ function compressImage(file, maxWidth = 1280, quality = 0.7) {
   });
 }
 
-/* ---------- GPS auto-capture when photo is taken ---------- */
+/* ---------- GPS re-capture when photo is taken (keeps location fresh/accurate) ---------- */
 document.getElementById('photo').addEventListener('change', () => {
   if (!navigator.geolocation) {
     gpsStatus.textContent = 'GPS not supported on this device — location will not be recorded.';
