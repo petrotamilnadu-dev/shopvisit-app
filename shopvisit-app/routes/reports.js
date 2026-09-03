@@ -105,4 +105,52 @@ router.get('/scope', (req, res) => {
   res.json({ distributors: [] });
 });
 
+// PUT /api/reports/visits/:id — correct a visit's details (Admin, or TM for their own distributors only)
+router.put('/visits/:id', (req, res) => {
+  const user = req.session.user;
+  if (!['admin', 'tm'].includes(user.role)) return res.status(403).json({ error: 'Not authorized to edit visits' });
+
+  const visit = db.prepare('SELECT * FROM visits WHERE id = ?').get(req.params.id);
+  if (!visit) return res.status(404).json({ error: 'Visit not found' });
+
+  if (user.role === 'tm') {
+    const allowed = db.prepare('SELECT distributor_id FROM tm_distributors WHERE tm_id = ?').all(user.tm_id).map(r => r.distributor_id);
+    if (!allowed.includes(visit.distributor_id)) return res.status(403).json({ error: 'Not authorized for this distributor' });
+  }
+
+  const up = (v) => (v !== undefined && v !== null && v !== '' ? String(v).toUpperCase() : null);
+  const orNull = (v) => (v !== undefined && v !== '' ? v : null);
+  const {
+    shop_type, outlet_status, shop_name, location_text, segment, contact_number,
+    orders_ltrs, collection_rupees, active_tertiary, remarks_feedback
+  } = req.body;
+
+  db.prepare(`
+    UPDATE visits SET
+      shop_type = COALESCE(?, shop_type),
+      outlet_status = COALESCE(?, outlet_status),
+      shop_name = COALESCE(?, shop_name),
+      location_text = COALESCE(?, location_text),
+      segment = COALESCE(?, segment),
+      contact_number = COALESCE(?, contact_number),
+      orders_ltrs = COALESCE(?, orders_ltrs),
+      collection_rupees = COALESCE(?, collection_rupees),
+      active_tertiary = COALESCE(?, active_tertiary),
+      remarks_feedback = COALESCE(?, remarks_feedback)
+    WHERE id = ?
+  `).run(
+    up(shop_type), up(outlet_status), up(shop_name), up(location_text), up(segment),
+    orNull(contact_number), orNull(orders_ltrs), orNull(collection_rupees),
+    orNull(active_tertiary), orNull(remarks_feedback),
+    req.params.id
+  );
+
+  const updated = db.prepare(`
+    SELECT visits.*, staff.name as staff_name, distributors.name as distributor_name
+    FROM visits JOIN staff ON visits.staff_id = staff.id JOIN distributors ON visits.distributor_id = distributors.id
+    WHERE visits.id = ?
+  `).get(req.params.id);
+  res.json({ ok: true, visit: updated });
+});
+
 module.exports = router;

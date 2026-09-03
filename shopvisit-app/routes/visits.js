@@ -89,13 +89,14 @@ router.post('/checkin', upload.single('photo'), (req, res) => {
     }
 
     const photo_path = req.file ? `/uploads/${req.file.filename}` : null;
+    const up = (v) => (v ? String(v).toUpperCase() : v);
 
     const info = db.prepare(`
       INSERT INTO visits (staff_id, distributor_id, shop_type, outlet_status, shop_name, location_text, segment, contact_number, photo_path, latitude, longitude)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      staff_id, staff.distributor_id, shop_type || null, outlet_status || null, shop_name,
-      location_text || null, segment || null, contact_number || null, photo_path,
+      staff_id, staff.distributor_id, up(shop_type), up(outlet_status), up(shop_name),
+      up(location_text), up(segment), contact_number || null, photo_path,
       latitude || null, longitude || null
     );
 
