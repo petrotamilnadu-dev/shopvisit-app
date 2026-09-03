@@ -194,14 +194,84 @@ router.post('/cleanup-old-photos', (req, res) => {
 
     let deleted = 0;
     for (const v of oldVisits) {
-      const filePath = path.join(uploadDir, path.basename(v.photo_path));
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-        deleted++;
+      // A photo can be shared across multiple visits (repeat visits reuse the original photo),
+      // so only delete the physical file if no OTHER visit (of any age) still points to it.
+      const refCount = db.prepare('SELECT COUNT(*) as c FROM visits WHERE photo_path = ?').get(v.photo_path).c;
+      if (refCount <= 1) {
+        const filePath = path.join(uploadDir, path.basename(v.photo_path));
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          deleted++;
+        }
       }
       db.prepare('UPDATE visits SET photo_path = NULL WHERE id = ?').run(v.id);
     }
     res.json({ ok: true, deleted });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/* ---------- Export / Import setup data (backup + recovery, e.g. before fixing disk config) ---------- */
+router.get('/export-data', (req, res) => {
+  const distributors = db.prepare('SELECT id, name, email, active FROM distributors').all();
+  const tms = db.prepare('SELECT id, name, email, active FROM tms').all();
+  const tm_distributors = db.prepare('SELECT tm_id, distributor_id FROM tm_distributors').all();
+  const staff = db.prepare('SELECT id, name, phone, pin_code, distributor_id, active FROM staff').all();
+  const users = db.prepare("SELECT username, role, distributor_id, tm_id FROM users WHERE role != 'admin'").all();
+  res.json({
+    exported_at: new Date().toISOString(),
+    note: 'Dashboard login PASSWORDS are not included (they are stored as one-way hashes). After import, use Admin → Dashboard Logins → Reset Password for each login listed here.',
+    distributors, tms, tm_distributors, staff, users
+  });
+});
+
+router.post('/import-data', (req, res) => {
+  const { distributors = [], tms = [], tm_distributors = [], staff = [], users = [] } = req.body;
+  const distIdMap = {};
+  const tmIdMap = {};
+  const tx = db.transaction(() => {
+    for (const d of distributors) {
+      const info = db.prepare('INSERT INTO distributors (name, email, active) VALUES (?, ?, ?)').run(d.name, d.email, d.active ? 1 : 0);
+      distIdMap[d.id] = info.lastInsertRowid;
+    }
+    for (const t of tms) {
+      const info = db.prepare('INSERT INTO tms (name, email, active) VALUES (?, ?, ?)').run(t.name, t.email, t.active ? 1 : 0);
+      tmIdMap[t.id] = info.lastInsertRowid;
+    }
+    for (const link of tm_distributors) {
+      const newTmId = tmIdMap[link.tm_id];
+      const newDistId = distIdMap[link.distributor_id];
+      if (newTmId && newDistId) {
+        db.prepare('INSERT OR IGNORE INTO tm_distributors (tm_id, distributor_id) VALUES (?, ?)').run(newTmId, newDistId);
+      }
+    }
+    for (const s of staff) {
+      const newDistId = distIdMap[s.distributor_id];
+      if (!newDistId) continue;
+      const pinExists = db.prepare('SELECT 1 FROM staff WHERE pin_code = ?').get(s.pin_code);
+      const pin = pinExists ? generateUniquePin() : s.pin_code;
+      db.prepare('INSERT INTO staff (name, phone, pin_code, distributor_id, active) VALUES (?, ?, ?, ?, ?)')
+        .run(s.name, s.phone, pin, newDistId, s.active ? 1 : 0);
+    }
+    for (const u of users) {
+      const exists = db.prepare('SELECT 1 FROM users WHERE username = ?').get(u.username);
+      if (exists) continue;
+      const tempPass = Math.random().toString(36).slice(-8);
+      const hash = bcrypt.hashSync(tempPass, 10);
+      const newDistId = u.distributor_id ? distIdMap[u.distributor_id] : null;
+      const newTmId = u.tm_id ? tmIdMap[u.tm_id] : null;
+      db.prepare('INSERT INTO users (username, password_hash, role, distributor_id, tm_id) VALUES (?, ?, ?, ?, ?)')
+        .run(u.username, hash, u.role, newDistId || null, newTmId || null);
+    }
+  });
+  try {
+    tx();
+    res.json({
+      ok: true,
+      imported: { distributors: distributors.length, tms: tms.length, staff: staff.length, users: users.length },
+      note: 'Dashboard logins were recreated with random temporary passwords — use Reset Password for each before sharing them.'
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
