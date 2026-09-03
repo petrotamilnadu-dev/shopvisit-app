@@ -105,6 +105,16 @@
       <button id="changePassBtn" style="margin-top:12px;">Change Password</button>
     </div>
     <div class="card">
+      <h3 style="margin-top:0;">Backup / Restore Setup Data</h3>
+      <p class="small">Export your Distributors, TMs, Staff (with PINs), and TM assignments to a file — useful before making hosting changes, or as a regular backup. Import restores from a previously exported file (dashboard login passwords will need to be reset after import — they're never stored in plain text).</p>
+      <div class="row">
+        <button id="exportDataBtn" class="secondary">Export Setup Data</button>
+        <button id="importDataBtn" class="secondary">Import Setup Data</button>
+      </div>
+      <input type="file" id="importFileInput" accept=".json" style="display:none;">
+    </div>
+
+    <div class="card">
       <h3 style="margin-top:0;">Photo Storage</h3>
       <p class="small">Free hosting gives limited disk space (about 1GB on Render's free tier — roughly 2,000-4,000 compressed photos). Check usage here, and clear old photos periodically to free up space. <b>This never deletes any visit data or Excel/email history — only the photo image file.</b></p>
       <div id="storageInfo" class="small" style="margin-bottom:10px;">Loading...</div>
