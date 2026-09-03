@@ -4,6 +4,8 @@ const tbody = document.querySelector('#visitTable tbody');
 const emptyState = document.getElementById('emptyState');
 const statsDiv = document.getElementById('stats');
 const openVisitsList = document.getElementById('openVisitsList');
+let currentRole = null;
+let latestVisits = [];
 
 function todayISO() {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
@@ -19,6 +21,7 @@ async function init() {
   const meRes = await fetch('/api/auth/me');
   const me = await meRes.json();
   if (!me.user) { window.location.href = '/login.html'; return; }
+  currentRole = me.user.role;
   whoami.textContent = `${me.user.username} (${me.user.role.toUpperCase()})`;
 
   const scopeRes = await fetch('/api/reports/scope');
@@ -63,6 +66,7 @@ async function loadVisits() {
 
   const res = await fetch('/api/reports/visits?' + params.toString());
   const visits = await res.json();
+  latestVisits = visits;
 
   const openCount = visits.filter(v => !v.out_time).length;
   statsDiv.innerHTML = `
@@ -77,6 +81,7 @@ async function loadVisits() {
     return;
   }
   emptyState.style.display = 'none';
+  const canEdit = currentRole === 'admin' || currentRole === 'tm';
   tbody.innerHTML = visits.map(v => `
     <tr>
       <td>${v.staff_name}</td>
@@ -93,9 +98,59 @@ async function loadVisits() {
       <td>${v.active_tertiary || '-'}</td>
       <td>${v.remarks_feedback || '-'}</td>
       <td>${v.photo_path ? `<a class="link" href="${v.photo_path}" target="_blank">View</a>` : '-'}</td>
+      <td>${canEdit ? `<button type="button" class="secondary" onclick="openEditVisit(${v.id})">Edit</button>` : ''}</td>
     </tr>
   `).join('');
 }
+
+/* ---------- Edit visit (Admin / TM only) ---------- */
+function openEditVisit(visitId) {
+  const v = latestVisits.find(x => x.id === visitId);
+  if (!v) return;
+  document.getElementById('editVisitCard').dataset.visitId = visitId;
+  document.getElementById('editShopType').value = v.shop_type || 'RETAILER';
+  document.getElementById('editOutletStatus').value = v.outlet_status || 'NEW';
+  document.getElementById('editShopName').value = v.shop_name || '';
+  document.getElementById('editLocation').value = v.location_text || '';
+  document.getElementById('editSegment').value = v.segment || 'CVL';
+  document.getElementById('editContact').value = v.contact_number || '';
+  document.getElementById('editOrders').value = v.orders_ltrs ?? '';
+  document.getElementById('editCollection').value = v.collection_rupees ?? '';
+  document.getElementById('editActiveTertiary').value = v.active_tertiary || '';
+  document.getElementById('editRemarks').value = v.remarks_feedback || '';
+  document.getElementById('editVisitCard').style.display = 'block';
+  document.getElementById('editVisitCard').scrollIntoView({ behavior: 'smooth' });
+}
+
+document.getElementById('cancelEditBtn').addEventListener('click', () => {
+  document.getElementById('editVisitCard').style.display = 'none';
+});
+
+document.getElementById('saveEditBtn').addEventListener('click', async () => {
+  const visitId = document.getElementById('editVisitCard').dataset.visitId;
+  const body = {
+    shop_type: document.getElementById('editShopType').value,
+    outlet_status: document.getElementById('editOutletStatus').value,
+    shop_name: document.getElementById('editShopName').value,
+    location_text: document.getElementById('editLocation').value,
+    segment: document.getElementById('editSegment').value,
+    contact_number: document.getElementById('editContact').value,
+    orders_ltrs: document.getElementById('editOrders').value,
+    collection_rupees: document.getElementById('editCollection').value,
+    active_tertiary: document.getElementById('editActiveTertiary').value,
+    remarks_feedback: document.getElementById('editRemarks').value
+  };
+  const res = await fetch(`/api/reports/visits/${visitId}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+  });
+  if (res.ok) {
+    document.getElementById('editVisitCard').style.display = 'none';
+    loadVisits();
+  } else {
+    const data = await res.json();
+    alert('Failed to save: ' + (data.error || 'Unknown error'));
+  }
+});
 
 document.getElementById('refreshBtn').addEventListener('click', () => { loadOpenVisits(); loadVisits(); });
 distFilter.addEventListener('change', loadVisits);
