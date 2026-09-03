@@ -141,6 +141,16 @@ document.getElementById('newShopBtn').addEventListener('click', () => {
 });
 document.getElementById('changePinBtn0').addEventListener('click', resetToPin);
 
+/* ---------- Force Shop Name / Location to uppercase as staff types ---------- */
+['shopName', 'location'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('input', () => {
+    const pos = el.selectionStart;
+    el.value = el.value.toUpperCase();
+    el.setSelectionRange(pos, pos);
+  });
+});
+
 /* ---------- Compress photo before upload (keeps storage usage low on free hosting) ---------- */
 function compressImage(file, maxWidth = 1280, quality = 0.7) {
   return new Promise((resolve, reject) => {
