@@ -2,7 +2,8 @@ const msg = document.getElementById('msg');
 function showMsg(text, type) {
   msg.innerHTML = `<div class="msg ${type}">${text}</div>`;
   window.scrollTo({ top: 0, behavior: 'smooth' });
-  setTimeout(() => { msg.innerHTML = ''; }, 4000);
+  const duration = (type === 'err' || text.length > 60) ? 12000 : 4000;
+  setTimeout(() => { msg.innerHTML = ''; }, duration);
 }
 
 /* ---------- Auth check + tabs ---------- */
@@ -286,17 +287,33 @@ document.getElementById('testSummaryBtn').addEventListener('click', async () => 
   showMsg('Sending test summary...', 'ok');
   const res = await fetch('/api/admin/test-daily-summary', { method: 'POST' });
   const data = await res.json();
-  if (res.ok) showMsg('Test daily summary sent (check inboxes)', 'ok');
-  else showMsg('Failed: ' + data.error, 'err');
+  if (!res.ok) return showMsg('Failed: ' + data.error, 'err');
+  showSummaryStats(data);
 });
 
 document.getElementById('testMorningReportBtn').addEventListener('click', async () => {
   showMsg('Generating and sending Excel report...', 'ok');
   const res = await fetch('/api/admin/test-morning-report', { method: 'POST' });
   const data = await res.json();
-  if (res.ok) showMsg('Test morning Excel report sent (check inboxes)', 'ok');
-  else showMsg('Failed: ' + data.error, 'err');
+  if (!res.ok) return showMsg('Failed: ' + data.error, 'err');
+  showSummaryStats(data);
 });
+
+function showSummaryStats(data) {
+  if (!data.smtpConfigured) {
+    showMsg('⚠️ SMTP_USER / SMTP_PASS are not set in Render\'s Environment Variables — no emails can be sent until you add them.', 'err');
+    return;
+  }
+  let text = `Sent: ${data.sent}, Skipped (nothing to send): ${data.skipped}`;
+  if (data.errors && data.errors.length) {
+    text += `<br>⚠️ Errors:<br>${data.errors.join('<br>')}`;
+    showMsg(text, 'err');
+  } else if (data.sent === 0) {
+    showMsg(text + '<br>(No emails were sent — likely no visit data matched yet. Add a test visit entry and try again.)', 'ok');
+  } else {
+    showMsg(text, 'ok');
+  }
+}
 
 document.getElementById('changePassBtn').addEventListener('click', async () => {
   const oldPassword = document.getElementById('oldPass').value;
