@@ -44,6 +44,63 @@
     <div id="openVisitsList"></div>
   </div>
 
+  <div class="card" id="editVisitCard" style="display:none;">
+    <h3 style="margin-top:0;">Edit Visit</h3>
+    <div class="row">
+      <div>
+        <label for="editShopType">Shop Type</label>
+        <select id="editShopType">
+          <option value="RETAILER">Retailer</option>
+          <option value="MECHANIC">Mechanic</option>
+          <option value="IWS">IWS</option>
+        </select>
+      </div>
+      <div>
+        <label for="editOutletStatus">Outlet Status</label>
+        <select id="editOutletStatus">
+          <option value="NEW">New</option>
+          <option value="EXISTING">Existing</option>
+        </select>
+      </div>
+    </div>
+    <label for="editShopName">Shop Name</label>
+    <input id="editShopName" type="text" style="text-transform:uppercase;">
+    <label for="editLocation">Location</label>
+    <input id="editLocation" type="text" style="text-transform:uppercase;">
+    <div class="row">
+      <div>
+        <label for="editSegment">Segment</label>
+        <select id="editSegment">
+          <option value="CVL">CVL</option>
+          <option value="PCMO">PCMO</option>
+          <option value="MCO">MCO</option>
+        </select>
+      </div>
+      <div>
+        <label for="editContact">Contact Number</label>
+        <input id="editContact" type="text">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="editOrders">Orders (Ltrs)</label>
+        <input id="editOrders" type="text">
+      </div>
+      <div>
+        <label for="editCollection">Collection (Rs)</label>
+        <input id="editCollection" type="text">
+      </div>
+    </div>
+    <label for="editActiveTertiary">Active/Tertiary</label>
+    <input id="editActiveTertiary" type="text">
+    <label for="editRemarks">Remarks & Feedback</label>
+    <textarea id="editRemarks"></textarea>
+    <div class="row" style="margin-top:14px;">
+      <button type="button" id="saveEditBtn">Save Changes</button>
+      <button type="button" id="cancelEditBtn" class="secondary">Cancel</button>
+    </div>
+  </div>
+
   <div class="card">
     <h3 style="margin-top:0;">Visit History</h3>
     <div style="overflow-x:auto;">
@@ -52,7 +109,7 @@
         <tr>
           <th>Staff</th><th>Shop</th><th>Type</th><th>Outlet</th><th>Segment</th><th>Contact</th>
           <th>Location</th><th>IN Time</th><th>OUT Time</th><th>Orders (Ltrs)</th><th>Collection (Rs)</th>
-          <th>Active/Tertiary</th><th>Remarks</th><th>Photo</th>
+          <th>Active/Tertiary</th><th>Remarks</th><th>Photo</th><th></th>
         </tr>
       </thead>
       <tbody></tbody>
