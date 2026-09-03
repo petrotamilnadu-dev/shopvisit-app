@@ -310,6 +310,51 @@ document.getElementById('changePassBtn').addEventListener('click', async () => {
   else showMsg(data.error, 'err');
 });
 
+/* ---------- Backup / Restore ---------- */
+document.getElementById('exportDataBtn').addEventListener('click', async () => {
+  const res = await fetch('/api/admin/export-data');
+  const data = await res.json();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `shopvisit-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showMsg('Backup file downloaded', 'ok');
+});
+
+document.getElementById('importDataBtn').addEventListener('click', () => {
+  document.getElementById('importFileInput').click();
+});
+
+document.getElementById('importFileInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (!confirm('Import this backup? This ADDS the backed-up Distributors/TMs/Staff to what you already have (it will not remove or overwrite anything currently in the system).')) {
+    e.target.value = '';
+    return;
+  }
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    const res = await fetch('/api/admin/import-data', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Import failed');
+    showMsg(`Imported: ${result.imported.distributors} distributors, ${result.imported.tms} TMs, ${result.imported.staff} staff, ${result.imported.users} logins. ${result.note}`, 'ok');
+    loadDistributors(); loadTms(); loadStaff(); loadUsers();
+  } catch (err) {
+    showMsg('Import failed: ' + err.message, 'err');
+  } finally {
+    e.target.value = '';
+  }
+});
+
 /* ---------- Storage ---------- */
 async function loadStorageInfo() {
   const res = await fetch('/api/admin/storage-info');
