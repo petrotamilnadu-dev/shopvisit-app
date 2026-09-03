@@ -8,6 +8,9 @@ async function runDailySummary() {
 
   console.log(`[cron] Running daily summary for ${todayStr}`);
 
+  const smtpConfigured = !!(process.env.SMTP_USER && process.env.SMTP_PASS);
+  const stats = { smtpConfigured, sent: 0, skipped: 0, errors: [] };
+
   // --- Distributor summaries ---
   const distributors = db.prepare('SELECT * FROM distributors WHERE active = 1').all();
   for (const dist of distributors) {
@@ -17,12 +20,15 @@ async function runDailySummary() {
       WHERE visits.distributor_id = ? AND date(visits.in_time) = date('now', 'localtime')
       ORDER BY visits.in_time
     `).all(dist.id);
-    await sendDistributorDailySummary({
+    const result = await sendDistributorDailySummary({
       distributorEmail: dist.email,
       distributorName: dist.name,
       visits,
       dateStr: todayStr
     });
+    if (result.sent) stats.sent++;
+    else if (result.error) stats.errors.push(`${dist.name}: ${result.error}`);
+    else stats.skipped++;
   }
 
   // --- TM summaries (across their assigned distributors) ---
@@ -44,15 +50,19 @@ async function runDailySummary() {
       `).all(d.id);
     }
 
-    await sendTmDailySummary({
+    const result = await sendTmDailySummary({
       tmEmail: tm.email,
       tmName: tm.name,
       visitsByDistributor,
       dateStr: todayStr
     });
+    if (result.sent) stats.sent++;
+    else if (result.error) stats.errors.push(`${tm.name}: ${result.error}`);
+    else stats.skipped++;
   }
 
-  console.log('[cron] Daily summary run complete');
+  console.log('[cron] Daily summary run complete', stats);
+  return stats;
 }
 
 // Month-to-date Excel report — one to Admin (all distributors), one per TM (their assigned distributors only)
@@ -63,6 +73,9 @@ async function runMorningExcelReport() {
   const fileDateStr = istNow.toISOString().slice(0, 10);
 
   console.log(`[cron] Running morning Excel report for ${monthLabel}`);
+
+  const smtpConfigured = !!(process.env.SMTP_USER && process.env.SMTP_PASS);
+  const stats = { smtpConfigured, sent: 0, skipped: 0, errors: [] };
 
   const baseQuery = `
     SELECT visits.*, staff.name as staff_name, distributors.name as distributor_name
@@ -76,7 +89,7 @@ async function runMorningExcelReport() {
   if (process.env.ADMIN_REPORT_EMAIL) {
     const allVisits = db.prepare(baseQuery + ' ORDER BY visits.in_time').all();
     const buffer = await buildVisitsExcelBuffer(allVisits, 'All Distributors');
-    await sendMorningExcelReport({
+    const result = await sendMorningExcelReport({
       to: process.env.ADMIN_REPORT_EMAIL,
       recipientLabel: 'Admin',
       excelBuffer: buffer,
@@ -84,19 +97,23 @@ async function runMorningExcelReport() {
       visitCount: allVisits.length,
       monthLabel
     });
+    if (result.sent) stats.sent++;
+    else if (result.error) stats.errors.push(`Admin: ${result.error}`);
+    else stats.skipped++;
   } else {
     console.warn('[cron] ADMIN_REPORT_EMAIL not set — skipping admin morning Excel report');
+    stats.errors.push('ADMIN_REPORT_EMAIL is not set — Admin report was skipped entirely.');
   }
 
   // --- TM reports: scoped to each TM's assigned distributors ---
   const tms = db.prepare('SELECT * FROM tms WHERE active = 1').all();
   for (const tm of tms) {
     const distIds = db.prepare('SELECT distributor_id FROM tm_distributors WHERE tm_id = ?').all(tm.id).map(r => r.distributor_id);
-    if (!distIds.length) continue;
+    if (!distIds.length) { stats.skipped++; continue; }
     const placeholders = distIds.map(() => '?').join(',');
     const tmVisits = db.prepare(baseQuery + ` AND visits.distributor_id IN (${placeholders}) ORDER BY visits.in_time`).all(...distIds);
     const buffer = await buildVisitsExcelBuffer(tmVisits, tm.name);
-    await sendMorningExcelReport({
+    const result = await sendMorningExcelReport({
       to: tm.email,
       recipientLabel: tm.name,
       excelBuffer: buffer,
@@ -104,9 +121,13 @@ async function runMorningExcelReport() {
       visitCount: tmVisits.length,
       monthLabel
     });
+    if (result.sent) stats.sent++;
+    else if (result.error) stats.errors.push(`${tm.name}: ${result.error}`);
+    else stats.skipped++;
   }
 
-  console.log('[cron] Morning Excel report run complete');
+  console.log('[cron] Morning Excel report run complete', stats);
+  return stats;
 }
 
 function scheduleDailySummary() {
