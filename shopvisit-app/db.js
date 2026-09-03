@@ -77,12 +77,35 @@ CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
-  role TEXT NOT NULL CHECK(role IN ('admin','distributor','tm')),
+  role TEXT NOT NULL CHECK(role IN ('admin','distributor','tm','asm')),
   distributor_id INTEGER,
   tm_id INTEGER,
   created_at TEXT DEFAULT (datetime('now'))
 );
 `);
+
+// Migration: if this database was created before the 'asm' role existed, the users table's
+// CHECK constraint won't allow it yet. SQLite can't alter a CHECK constraint directly, so
+// rebuild the table (preserving all existing rows) when needed.
+const usersTableSql = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").get();
+if (usersTableSql && !usersTableSql.sql.includes("'asm'")) {
+  db.exec(`
+    ALTER TABLE users RENAME TO users_old;
+    CREATE TABLE users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      role TEXT NOT NULL CHECK(role IN ('admin','distributor','tm','asm')),
+      distributor_id INTEGER,
+      tm_id INTEGER,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    INSERT INTO users (id, username, password_hash, role, distributor_id, tm_id, created_at)
+      SELECT id, username, password_hash, role, distributor_id, tm_id, created_at FROM users_old;
+    DROP TABLE users_old;
+  `);
+  console.log('Migrated users table to support the ASM role.');
+}
 
 // Seed default admin user if none exists
 const adminExists = db.prepare("SELECT COUNT(*) as c FROM users WHERE role = 'admin'").get();
