@@ -44,21 +44,22 @@
 
     <label>Shop Type</label>
     <div class="row">
-      <label style="font-weight:400;"><input type="radio" name="shop_type" value="Retailer" required> Retailer</label>
-      <label style="font-weight:400;"><input type="radio" name="shop_type" value="Mechanic"> Mechanic</label>
+      <label style="font-weight:400;"><input type="radio" name="shop_type" value="RETAILER" required> Retailer</label>
+      <label style="font-weight:400;"><input type="radio" name="shop_type" value="MECHANIC"> Mechanic</label>
+      <label style="font-weight:400;"><input type="radio" name="shop_type" value="IWS"> IWS</label>
     </div>
 
     <label>Outlet Status</label>
     <div class="row">
-      <label style="font-weight:400;"><input type="radio" name="outlet_status" value="New" required> New</label>
-      <label style="font-weight:400;"><input type="radio" name="outlet_status" value="Existing"> Existing</label>
+      <label style="font-weight:400;"><input type="radio" name="outlet_status" value="NEW" required> New</label>
+      <label style="font-weight:400;"><input type="radio" name="outlet_status" value="EXISTING"> Existing</label>
     </div>
 
     <label for="shopName">Shop Name</label>
-    <input id="shopName" type="text" placeholder="e.g. Sri Ram Auto Spares" required>
+    <input id="shopName" type="text" placeholder="e.g. Sri Ram Auto Spares" style="text-transform:uppercase;" required>
 
     <label for="location">Location</label>
-    <input id="location" type="text" placeholder="Area / landmark">
+    <input id="location" type="text" placeholder="Area / landmark" style="text-transform:uppercase;">
 
     <label>Segment / Category</label>
     <div class="row">
