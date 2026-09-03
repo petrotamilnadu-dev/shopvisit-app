@@ -10,7 +10,7 @@ router.get('/visits', (req, res) => {
   const user = req.session.user;
   const { from, to, distributor_id, staff_id } = req.query;
 
-  let allowedDistributorIds = null; // null = all (admin)
+  let allowedDistributorIds = null; // null = all (admin, asm)
   if (user.role === 'distributor') {
     allowedDistributorIds = [user.distributor_id];
   } else if (user.role === 'tm') {
@@ -56,7 +56,7 @@ router.get('/visits', (req, res) => {
 // GET /api/reports/open-visits — staff who are currently checked IN to a shop (no OUT yet)
 router.get('/open-visits', (req, res) => {
   const user = req.session.user;
-  let allowedDistributorIds = null;
+  let allowedDistributorIds = null; // null = all (admin, asm)
   if (user.role === 'distributor') {
     allowedDistributorIds = [user.distributor_id];
   } else if (user.role === 'tm') {
@@ -85,7 +85,7 @@ router.get('/open-visits', (req, res) => {
 // Distributor/TM filter dropdown data scoped to the logged-in user
 router.get('/scope', (req, res) => {
   const user = req.session.user;
-  if (user.role === 'admin') {
+  if (user.role === 'admin' || user.role === 'asm') {
     return res.json({
       distributors: db.prepare('SELECT id, name FROM distributors ORDER BY name').all()
     });
