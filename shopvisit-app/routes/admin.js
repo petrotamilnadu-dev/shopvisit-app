@@ -166,7 +166,7 @@ router.post('/users/:id/reset-password', (req, res) => {
 /* ---------- Storage management (uploads folder can fill up on free hosting) ---------- */
 const fs = require('fs');
 const path = require('path');
-const uploadDir = path.join(__dirname, '..', 'uploads');
+const { UPLOAD_DIR: uploadDir } = require('../paths');
 
 router.get('/storage-info', (req, res) => {
   try {
