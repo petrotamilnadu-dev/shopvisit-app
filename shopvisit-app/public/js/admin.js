@@ -217,10 +217,13 @@ async function refreshUserLinkOptions() {
     const dists = await (await fetch('/api/admin/distributors')).json();
     wrap.innerHTML = `<label for="userLinkSelect">Distributor</label>
       <select id="userLinkSelect">${dists.map(d => `<option value="${d.id}">${d.name}</option>`).join('')}</select>`;
-  } else {
+  } else if (role === 'tm') {
     const tms = await (await fetch('/api/admin/tms')).json();
     wrap.innerHTML = `<label for="userLinkSelect">TM</label>
       <select id="userLinkSelect">${tms.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}</select>`;
+  } else {
+    // ASM sees every distributor — no link needed
+    wrap.innerHTML = '<p class="small">ASM logins see all Distributors\' live data automatically — no assignment needed.</p>';
   }
 }
 document.getElementById('userRole').addEventListener('change', refreshUserLinkOptions);
@@ -261,9 +264,11 @@ document.getElementById('addUserBtn').addEventListener('click', async () => {
   const password = document.getElementById('userPassword').value.trim();
   const role = document.getElementById('userRole').value;
   const linkId = document.getElementById('userLinkSelect')?.value;
-  if (!username || !password || !linkId) return showMsg('Fill all fields', 'err');
+  if (!username || !password) return showMsg('Fill all fields', 'err');
+  if (role !== 'asm' && !linkId) return showMsg('Fill all fields', 'err');
   const body = { username, password, role };
-  if (role === 'distributor') body.distributor_id = linkId; else body.tm_id = linkId;
+  if (role === 'distributor') body.distributor_id = linkId;
+  else if (role === 'tm') body.tm_id = linkId;
   const res = await fetch('/api/admin/users', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
