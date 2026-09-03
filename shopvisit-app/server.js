@@ -35,8 +35,8 @@ app.use('/api/reports', reportRoutes);
 // Manual trigger to test the daily summary email without waiting for the cron time
 app.post('/api/admin/test-daily-summary', require('./middleware/auth').requireRole('admin'), async (req, res) => {
   try {
-    await runDailySummary();
-    res.json({ ok: true });
+    const stats = await runDailySummary();
+    res.json({ ok: true, ...stats });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -45,8 +45,8 @@ app.post('/api/admin/test-daily-summary', require('./middleware/auth').requireRo
 // Manual trigger to test the morning Excel report without waiting for the cron time
 app.post('/api/admin/test-morning-report', require('./middleware/auth').requireRole('admin'), async (req, res) => {
   try {
-    await runMorningExcelReport();
-    res.json({ ok: true });
+    const stats = await runMorningExcelReport();
+    res.json({ ok: true, ...stats });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
