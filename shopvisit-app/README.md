@@ -36,6 +36,15 @@ Distributor and their assigned TM(s). Admin/Distributor/TM can log in anytime to
 - **Storage management** (Admin → Tools tab) — see how much disk space your photos are using,
   and clear photos older than a chosen number of days with one click (this only deletes the
   image file — the visit record, its data, and all past emails/Excel reports are untouched).
+- **Automatic shop lookup by GPS** — when a staff member checks IN and their phone's GPS is
+  within about 100 meters of a shop that **any** staff member (under the same Distributor) has
+  visited before, the app shows that shop as a quick pick — tap it and Shop Type, Outlet Status,
+  Name, Location, Segment and Contact Number are all filled in automatically. The staff member
+  only needs to take a fresh photo and tap Check IN — no retyping for repeat visits. If nothing
+  nearby matches, they get the normal blank form to add a new shop.
+- **Home Screen App Icon** — staff can add the entry form to their phone's home screen as
+  an app icon (no browser address bar, opens full-screen like a real app) — no APK/Play
+  Store needed. See section 8 below for how each staff member sets this up (takes 10 seconds).
 - **Daily summary email** — runs automatically every night (default 9:00 PM IST, configurable)
   and mails each Distributor and each TM a full table of that day's visits (IN + OUT details,
   orders, collection, remarks — everything).
@@ -116,11 +125,19 @@ anywhere, and the nightly email job runs even when your laptop is off.
    | `SUMMARY_CRON_TIME` | `0 21 * * *` (9 PM daily — change the `21` to any hour, 24-hr format) |
    | `ADMIN_REPORT_EMAIL` | your own email — gets the morning Excel report (all distributors) |
    | `MORNING_REPORT_CRON_TIME` | `0 7 * * *` (7 AM daily — change the `7` to any hour) |
+   | `PERSIST_DIR` | see step 5 below — set this to match your disk's Mount Path exactly |
 
-5. **Important — add a Persistent Disk** (so your data and uploaded photos aren't
-   lost when Render restarts the app): Settings → **Disks** → Add Disk →
-   Mount Path: `/opt/render/project/src/data` (and a second one for `/opt/render/project/src/uploads`
-   if you want photos to persist too). Free tier gives 1GB, which is plenty for this.
+5. **Important — add a Persistent Disk** (so your data and uploaded photos aren't lost when
+   Render restarts the app). Render allows only **one** disk per service, so the database and
+   photos both live under it as subfolders.
+
+   - Settings → **Disks** → **Add Disk**
+   - **Mount Path:** if your **Root Directory** setting (Build section, above) is `shopvisit-app`,
+     use `/opt/render/project/src/shopvisit-app/persist` — otherwise use
+     `/opt/render/project/src/persist`. (Match whichever Root Directory you actually set — this
+     is the most common mistake: the disk path must include the same folder name.)
+   - **Size:** 1 GB is plenty to start (Free/Starter plans support one disk each).
+   - Set the `PERSIST_DIR` environment variable (step 4 above) to this **exact same path**.
 
    **About photo storage running out:** photos are automatically compressed before upload, so
    1GB comfortably holds a few thousand photos. If you ever get close to the limit, Admin →
@@ -178,3 +195,27 @@ cron job to be 100% reliable even with zero traffic), upgrade to Render's paid
 Any Node.js hosting works the same way (Railway, a VPS, etc.) — the requirements are:
 Node.js 18+, a persistent disk for the `data/` and `uploads/` folders (SQLite database
 + photos live there), and the same environment variables from `.env.example`.
+
+---
+
+## 8. Adding the app icon to a staff member's phone (instead of a link)
+
+Once deployed, share the entry form link with each staff member **once** — after this step
+they never need to type or see the link again, they just tap an icon like any other app.
+This is not a Play Store APK, but it looks and feels the same (full-screen, own icon, no
+browser address bar) and needs no app store listing or developer account.
+
+**On Android (Chrome):**
+1. Open the link in Chrome.
+2. Tap the **⋮** (three dots) menu, top right.
+3. Tap **"Add to Home screen"** (or **"Install app"** if that's shown instead).
+4. Confirm — the "Shop Visit" icon now appears on their home screen.
+
+**On iPhone (Safari):**
+1. Open the link in Safari.
+2. Tap the **Share** icon (square with an arrow) at the bottom.
+3. Scroll down and tap **"Add to Home Screen"**.
+4. Confirm — same result, a home screen icon.
+
+From then on, staff just tap the icon — it opens straight to the PIN entry screen, full-screen,
+with no browser bar or link visible.

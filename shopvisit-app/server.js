@@ -23,7 +23,8 @@ app.use(session({
   cookie: { maxAge: 1000 * 60 * 60 * 12 } // 12 hours
 }));
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const { UPLOAD_DIR } = require('./paths');
+app.use('/uploads', express.static(UPLOAD_DIR));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/api/auth', authRoutes);
