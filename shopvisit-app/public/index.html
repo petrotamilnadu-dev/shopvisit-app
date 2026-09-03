@@ -72,7 +72,8 @@
     <input id="contactNumber" type="tel" inputmode="numeric" pattern="\d*" placeholder="10-digit number">
 
     <label for="photo">Photo (GPS location auto-captured)</label>
-    <input id="photo" type="file" accept="image/*" capture="environment" required>
+    <input id="photo" type="file" accept="image/*" capture="environment">
+    <div id="photoReuseNote" class="small" style="margin-top:6px; display:none;"></div>
     <div id="gpsStatus" class="small" style="margin-top:6px;"></div>
 
     <button type="submit" id="checkinBtn" class="block" style="margin-top:18px;">Check IN to this Shop</button>
