@@ -170,11 +170,17 @@ async function loadStaff() {
 }
 
 async function resetStaffPin(id) {
-  if (!confirm('Reset PIN for this staff member? They will need the new PIN to log in.')) return;
-  const res = await fetch(`/api/admin/staff/${id}/reset-pin`, { method: 'POST' });
+  const input = prompt('Enter the new 4-digit PIN for this staff member (leave blank to auto-generate one instead):');
+  if (input === null) return; // cancelled
+  const pin_code = input.trim();
+  if (pin_code && !/^\d{4}$/.test(pin_code)) return showMsg('PIN must be exactly 4 digits', 'err');
+  const res = await fetch(`/api/admin/staff/${id}/reset-pin`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pin_code: pin_code || undefined })
+  });
   const data = await res.json();
   if (res.ok) { showMsg(`New PIN: ${data.pin_code}`, 'ok'); loadStaff(); }
-  else showMsg('Failed to reset PIN', 'err');
+  else showMsg(data.error || 'Failed to reset PIN', 'err');
 }
 
 async function toggleStaff(id, active, name, phone, distributor_id) {
