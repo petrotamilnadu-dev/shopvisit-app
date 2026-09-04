@@ -82,6 +82,41 @@ router.get('/open-visits', (req, res) => {
   res.json(db.prepare(query).all(...params));
 });
 
+// Staff list scoped to the logged-in user, for the dashboard "Staff" filter dropdown.
+// Optionally narrowed further by ?distributor_id= (e.g. when the Distributor filter changes).
+router.get('/staff-list', (req, res) => {
+  const user = req.session.user;
+  const { distributor_id } = req.query;
+
+  let allowedDistributorIds = null; // null = all (admin, asm)
+  if (user.role === 'distributor') {
+    allowedDistributorIds = [user.distributor_id];
+  } else if (user.role === 'tm') {
+    allowedDistributorIds = db.prepare('SELECT distributor_id FROM tm_distributors WHERE tm_id = ?')
+      .all(user.tm_id).map(r => r.distributor_id);
+  }
+
+  let query = `
+    SELECT staff.id, staff.name, staff.distributor_id, distributors.name as distributor_name
+    FROM staff JOIN distributors ON staff.distributor_id = distributors.id
+    WHERE staff.active = 1
+  `;
+  const params = [];
+
+  if (allowedDistributorIds) {
+    if (allowedDistributorIds.length === 0) return res.json([]);
+    query += ` AND staff.distributor_id IN (${allowedDistributorIds.map(() => '?').join(',')})`;
+    params.push(...allowedDistributorIds);
+  }
+  if (distributor_id) {
+    query += ' AND staff.distributor_id = ?';
+    params.push(distributor_id);
+  }
+  query += ' ORDER BY distributors.name, staff.name';
+
+  res.json(db.prepare(query).all(...params));
+});
+
 // Distributor/TM filter dropdown data scoped to the logged-in user
 router.get('/scope', (req, res) => {
   const user = req.session.user;
