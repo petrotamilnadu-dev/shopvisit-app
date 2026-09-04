@@ -174,30 +174,46 @@ document.getElementById('changePinBtn0').addEventListener('click', resetToPin);
 });
 
 /* ---------- Compress photo before upload (keeps storage usage low on free hosting) ---------- */
-function compressImage(file, maxWidth = 1280, quality = 0.7) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const reader = new FileReader();
-    reader.onload = (e) => { img.src = e.target.result; };
-    reader.onerror = reject;
-    img.onload = () => {
-      let { width, height } = img;
-      if (width > maxWidth) {
-        height = Math.round(height * (maxWidth / width));
-        width = maxWidth;
-      }
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-      canvas.toBlob(
-        (blob) => resolve(blob ? new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }) : file),
-        'image/jpeg', quality
-      );
-    };
-    img.onerror = () => resolve(file); // fall back to original if anything goes wrong
-    reader.readAsDataURL(file);
-  });
+// Uses createImageBitmap (works directly off the file, no base64 duplication) which is far
+// lighter on memory than the old FileReader+Image approach — that was crashing with
+// "low memory" on budget Android phones with big camera photos. If anything goes wrong here
+// for any reason, we fall back to uploading the original photo rather than blocking check-in.
+async function compressImage(file, maxWidth = 1280, quality = 0.7) {
+  let objectUrl;
+  try {
+    let bitmap;
+    if ('createImageBitmap' in window) {
+      bitmap = await createImageBitmap(file);
+    } else {
+      objectUrl = URL.createObjectURL(file);
+      bitmap = await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = objectUrl;
+      });
+    }
+
+    let { width, height } = bitmap;
+    if (width > maxWidth) {
+      height = Math.round(height * (maxWidth / width));
+      width = maxWidth;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
+
+    if (bitmap.close) bitmap.close(); // free the decoded image from memory immediately
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+    return blob ? new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }) : file;
+  } catch (err) {
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    console.warn('Photo compression skipped (using original file):', err);
+    return file;
+  }
 }
 
 /* ---------- GPS re-capture when photo is taken (keeps location fresh/accurate) ---------- */
