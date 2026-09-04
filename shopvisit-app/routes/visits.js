@@ -37,7 +37,7 @@ router.get('/nearby-shops', (req, res) => {
   const radiusM = Number(radius) || 100;
 
   const candidates = db.prepare(`
-    SELECT shop_name, shop_type, outlet_status, location_text, segment, contact_number, latitude, longitude, MAX(in_time) as last_visit
+    SELECT shop_name, shop_type, outlet_status, location_text, segment, contact_number, photo_path, latitude, longitude, MAX(in_time) as last_visit
     FROM visits
     WHERE distributor_id = ? AND latitude IS NOT NULL AND longitude IS NOT NULL
     GROUP BY shop_name
@@ -74,7 +74,7 @@ router.post('/verify-pin', (req, res) => {
 // Step 2a: Check IN to a new shop. Blocked if this staff already has an open (un-checked-out) shop.
 router.post('/checkin', upload.single('photo'), (req, res) => {
   try {
-    const { staff_id, shop_type, outlet_status, shop_name, location_text, segment, contact_number, latitude, longitude } = req.body;
+    const { staff_id, shop_type, outlet_status, shop_name, location_text, segment, contact_number, latitude, longitude, reuse_photo_path } = req.body;
     if (!staff_id || !shop_name) return res.status(400).json({ error: 'staff_id and shop_name required' });
 
     const staff = db.prepare('SELECT * FROM staff WHERE id = ? AND active = 1').get(staff_id);
@@ -88,8 +88,14 @@ router.post('/checkin', upload.single('photo'), (req, res) => {
       });
     }
 
-    const photo_path = req.file ? `/uploads/${req.file.filename}` : null;
     const up = (v) => (v ? String(v).toUpperCase() : v);
+    let photo_path = null;
+    if (req.file) {
+      photo_path = `/uploads/${req.file.filename}`;
+    } else if (reuse_photo_path && /^\/uploads\/[A-Za-z0-9_.-]+$/.test(reuse_photo_path)) {
+      // Repeat visit to a known shop — reuse the photo from an earlier visit instead of forcing a retake
+      photo_path = reuse_photo_path;
+    }
 
     const info = db.prepare(`
       INSERT INTO visits (staff_id, distributor_id, shop_type, outlet_status, shop_name, location_text, segment, contact_number, photo_path, latitude, longitude)
