@@ -1,5 +1,6 @@
 const whoami = document.getElementById('whoami');
 const distFilter = document.getElementById('distFilter');
+const staffFilter = document.getElementById('staffFilter');
 const tbody = document.querySelector('#visitTable tbody');
 const emptyState = document.getElementById('emptyState');
 const statsDiv = document.getElementById('stats');
@@ -29,6 +30,8 @@ async function init() {
   distFilter.innerHTML = '<option value="">All</option>' +
     scope.distributors.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
 
+  await loadStaffOptions();
+
   document.getElementById('fromDate').value = todayISO();
   document.getElementById('toDate').value = todayISO();
 
@@ -37,11 +40,25 @@ async function init() {
   setInterval(loadOpenVisits, 30000); // refresh "live" section every 30s
 }
 
+async function loadStaffOptions() {
+  const distId = distFilter.value;
+  const params = distId ? `?distributor_id=${distId}` : '';
+  const res = await fetch('/api/reports/staff-list' + params);
+  const staff = await res.json();
+  const showDistName = !distId; // show "(Distributor)" only when viewing across multiple distributors
+  staffFilter.innerHTML = '<option value="">All</option>' +
+    staff.map(s => `<option value="${s.id}">${s.name}${showDistName ? ' (' + s.distributor_name + ')' : ''}</option>`).join('');
+}
+
 async function loadOpenVisits() {
   const res = await fetch('/api/reports/open-visits');
-  const visits = await res.json();
+  let visits = await res.json();
+  const staffId = staffFilter.value;
+  if (staffId) visits = visits.filter(v => String(v.staff_id) === staffId);
   if (!visits.length) {
-    openVisitsList.innerHTML = '<p class="small">No staff currently checked in to a shop.</p>';
+    openVisitsList.innerHTML = staffId
+      ? '<p class="small">This staff member is not currently checked in to any shop.</p>'
+      : '<p class="small">No staff currently checked in to a shop.</p>';
     return;
   }
   openVisitsList.innerHTML = visits.map(v => `
@@ -59,10 +76,12 @@ async function loadVisits() {
   const from = document.getElementById('fromDate').value;
   const to = document.getElementById('toDate').value;
   const dist = distFilter.value;
+  const staffId = staffFilter.value;
   const params = new URLSearchParams();
   if (from) params.set('from', from);
   if (to) params.set('to', to);
   if (dist) params.set('distributor_id', dist);
+  if (staffId) params.set('staff_id', staffId);
 
   const res = await fetch('/api/reports/visits?' + params.toString());
   const visits = await res.json();
@@ -153,7 +172,13 @@ document.getElementById('saveEditBtn').addEventListener('click', async () => {
 });
 
 document.getElementById('refreshBtn').addEventListener('click', () => { loadOpenVisits(); loadVisits(); });
-distFilter.addEventListener('change', loadVisits);
+distFilter.addEventListener('change', async () => {
+  staffFilter.value = ''; // reset staff choice when distributor changes
+  await loadStaffOptions();
+  loadOpenVisits();
+  loadVisits();
+});
+staffFilter.addEventListener('change', () => { loadOpenVisits(); loadVisits(); });
 document.getElementById('logoutBtn').addEventListener('click', async () => {
   await fetch('/api/auth/logout', { method: 'POST' });
   window.location.href = '/login.html';
