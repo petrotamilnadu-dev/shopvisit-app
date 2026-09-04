@@ -42,24 +42,21 @@
   <form id="inForm" class="card" style="display:none;">
     <p class="small" style="margin-top:0;">New Shop Visit — <b>IN Time</b></p>
 
+    <label for="shopName">Shop Name</label>
+    <input id="shopName" type="text" placeholder="e.g. Sri Ram Auto Spares" style="text-transform:uppercase;" required>
+
+    <label for="location">Location</label>
+    <input id="location" type="text" placeholder="Area / landmark" style="text-transform:uppercase;">
+
+    <label for="contactNumber">Contact Number</label>
+    <input id="contactNumber" type="tel" inputmode="numeric" pattern="\d*" placeholder="10-digit number">
+
     <label>Shop Type</label>
     <div class="row">
       <label style="font-weight:400;"><input type="radio" name="shop_type" value="RETAILER" required> Retailer</label>
       <label style="font-weight:400;"><input type="radio" name="shop_type" value="MECHANIC"> Mechanic</label>
       <label style="font-weight:400;"><input type="radio" name="shop_type" value="IWS"> IWS</label>
     </div>
-
-    <label>Outlet Status</label>
-    <div class="row">
-      <label style="font-weight:400;"><input type="radio" name="outlet_status" value="NEW" required> New</label>
-      <label style="font-weight:400;"><input type="radio" name="outlet_status" value="EXISTING"> Existing</label>
-    </div>
-
-    <label for="shopName">Shop Name</label>
-    <input id="shopName" type="text" placeholder="e.g. Sri Ram Auto Spares" style="text-transform:uppercase;" required>
-
-    <label for="location">Location</label>
-    <input id="location" type="text" placeholder="Area / landmark" style="text-transform:uppercase;">
 
     <label>Segment / Category</label>
     <div class="row">
@@ -68,8 +65,11 @@
       <label style="font-weight:400;"><input type="radio" name="segment" value="MCO"> MCO</label>
     </div>
 
-    <label for="contactNumber">Contact Number</label>
-    <input id="contactNumber" type="tel" inputmode="numeric" pattern="\d*" placeholder="10-digit number">
+    <label>Outlet Status</label>
+    <div class="row">
+      <label style="font-weight:400;"><input type="radio" name="outlet_status" value="NEW" required> New</label>
+      <label style="font-weight:400;"><input type="radio" name="outlet_status" value="EXISTING"> Existing</label>
+    </div>
 
     <label for="photo">Photo (GPS location auto-captured)</label>
     <input id="photo" type="file" accept="image/*" capture="environment">
