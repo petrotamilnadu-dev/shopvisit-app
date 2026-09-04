@@ -13,7 +13,7 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => cb(null, `${Date.now()}_${file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')}`)
 });
-const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
+const upload = multer({ storage, limits: { fileSize: 12 * 1024 * 1024 } });
 
 function findOpenVisit(staffId) {
   return db.prepare('SELECT * FROM visits WHERE staff_id = ? AND out_time IS NULL ORDER BY in_time DESC LIMIT 1').get(staffId);
@@ -72,7 +72,17 @@ router.post('/verify-pin', (req, res) => {
 });
 
 // Step 2a: Check IN to a new shop. Blocked if this staff already has an open (un-checked-out) shop.
-router.post('/checkin', upload.single('photo'), (req, res) => {
+router.post('/checkin', (req, res, next) => {
+  upload.single('photo')(req, res, (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'That photo is too large to upload. Please try taking the photo again.' });
+      }
+      return res.status(400).json({ error: 'Could not process the photo: ' + err.message });
+    }
+    next();
+  });
+}, (req, res) => {
   try {
     const { staff_id, shop_type, outlet_status, shop_name, location_text, segment, contact_number, latitude, longitude, reuse_photo_path } = req.body;
     if (!staff_id || !shop_name) return res.status(400).json({ error: 'staff_id and shop_name required' });
