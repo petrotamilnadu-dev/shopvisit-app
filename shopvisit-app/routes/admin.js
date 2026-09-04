@@ -122,7 +122,14 @@ router.put('/staff/:id', (req, res) => {
 });
 
 router.post('/staff/:id/reset-pin', (req, res) => {
-  const pin = generateUniquePin();
+  let pin = req.body?.pin_code ? String(req.body.pin_code).trim() : null;
+  if (pin) {
+    if (!/^\d{4}$/.test(pin)) return res.status(400).json({ error: 'PIN must be exactly 4 digits' });
+    const exists = db.prepare('SELECT 1 FROM staff WHERE pin_code = ? AND id != ?').get(pin, req.params.id);
+    if (exists) return res.status(400).json({ error: 'This PIN is already used by another staff member' });
+  } else {
+    pin = generateUniquePin();
+  }
   db.prepare('UPDATE staff SET pin_code = ? WHERE id = ?').run(pin, req.params.id);
   res.json({ ok: true, pin_code: pin });
 });
