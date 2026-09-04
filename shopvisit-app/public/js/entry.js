@@ -9,6 +9,7 @@ const gpsStatus = document.getElementById('gpsStatus');
 let currentStaff = null;   // { id, name, distributor_id, distributor_name }
 let currentOpenVisit = null;
 let capturedLat = null, capturedLng = null;
+let reusePhotoPath = null; // set when the staff picked an existing nearby shop with a photo on file
 
 function showMsg(text, type) {
   msg.innerHTML = `<div class="msg ${type}">${text}</div>`;
@@ -27,6 +28,7 @@ function resetToPin() {
   currentStaff = null;
   currentOpenVisit = null;
   capturedLat = null; capturedLng = null;
+  reusePhotoPath = null;
   gpsStatus.textContent = '';
   document.getElementById('pin').value = '';
   inForm.reset();
@@ -88,7 +90,10 @@ pinForm.addEventListener('submit', async (e) => {
         return;
       }
     }
-    // No GPS or no nearby matches — go straight to the blank IN form
+    // No GPS or no nearby matches — go straight to the blank IN form (genuinely new shop)
+    reusePhotoPath = null;
+    document.getElementById('photo').required = true;
+    document.getElementById('photoReuseNote').style.display = 'none';
     showScreen('in');
   } catch (err) {
     showMsg('❌ ' + err.message, 'err');
@@ -122,7 +127,7 @@ function prefillInForm(shop) {
     if (el) el.checked = true;
   }
   // A shop found from a past visit is by definition an existing outlet
-  const existingEl = inForm.querySelector('input[name="outlet_status"][value="Existing"]');
+  const existingEl = inForm.querySelector('input[name="outlet_status"][value="EXISTING"]');
   if (existingEl) existingEl.checked = true;
   document.getElementById('shopName').value = shop.shop_name || '';
   document.getElementById('location').value = shop.location_text || '';
@@ -132,10 +137,27 @@ function prefillInForm(shop) {
   }
   document.getElementById('contactNumber').value = shop.contact_number || '';
   gpsStatus.textContent = '✅ Location already captured for this shop.';
+
+  // Repeat visit — photo is optional, reuse the one already on file unless staff retakes it
+  const photoInput = document.getElementById('photo');
+  photoInput.required = false;
+  const note = document.getElementById('photoReuseNote');
+  if (shop.photo_path) {
+    reusePhotoPath = shop.photo_path;
+    note.style.display = 'block';
+    note.innerHTML = `📷 Using the photo already on file for this shop. Only choose a new photo if you want to update it.<br><a class="link" href="${shop.photo_path}" target="_blank">View existing photo</a>`;
+  } else {
+    reusePhotoPath = null;
+    note.style.display = 'block';
+    note.textContent = 'No photo on file for this shop yet — photo is optional but recommended.';
+  }
 }
 
 document.getElementById('newShopBtn').addEventListener('click', () => {
   inForm.reset();
+  reusePhotoPath = null;
+  document.getElementById('photo').required = true;
+  document.getElementById('photoReuseNote').style.display = 'none';
   gpsStatus.textContent = capturedLat ? '✅ Location already captured.' : '';
   showScreen('in');
 });
@@ -217,6 +239,8 @@ inForm.addEventListener('submit', async (e) => {
     btn.textContent = 'Compressing photo...';
     const compressed = await compressImage(photoFile);
     formData.append('photo', compressed);
+  } else if (reusePhotoPath) {
+    formData.append('reuse_photo_path', reusePhotoPath);
   }
 
   try {
