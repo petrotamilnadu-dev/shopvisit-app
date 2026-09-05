@@ -72,13 +72,17 @@ async function loadOpenVisits() {
       : '<p class="small">No staff currently checked in to a shop.</p>';
     return;
   }
+  const canRelease = currentRole === 'admin' || currentRole === 'tm' || currentRole === 'distributor';
   openVisitsList.innerHTML = visits.map(v => `
     <div class="list-item">
       <div>
         <b>${v.staff_name}</b> <span class="small">(${v.distributor_name})</span><br>
         <span class="small">${v.shop_name} — IN at ${fmtTime(v.in_time)}${v.location_text ? ' • ' + v.location_text : ''}</span>
       </div>
-      <span class="badge off">Still IN</span>
+      <div>
+        <span class="badge off">Still IN</span>
+        ${canRelease ? `<button type="button" class="secondary" style="margin-left:8px;" onclick="releaseVisit(${v.id}, '${v.shop_name.replace(/'/g, "\\'")}')">Release</button>` : ''}
+      </div>
     </div>
   `).join('');
 }
@@ -210,6 +214,19 @@ function initColumnResize() {
     activeTh = null;
     document.body.style.cursor = '';
   });
+}
+
+/* ---------- Release a stuck open visit (Admin / TM / Distributor) ---------- */
+async function releaseVisit(visitId, shopName) {
+  if (!confirm(`Release "${shopName}"? This marks it as checked OUT now, even though the staff never gave OUT details. Use this only when a staff member forgot to check out and has already moved on.`)) return;
+  const res = await fetch(`/api/reports/visits/${visitId}/release`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+  const data = await res.json();
+  if (res.ok) {
+    loadOpenVisits();
+    loadVisits();
+  } else {
+    alert('Failed to release: ' + (data.error || 'Unknown error'));
+  }
 }
 
 document.getElementById('refreshBtn').addEventListener('click', () => { loadOpenVisits(); loadVisits(); });

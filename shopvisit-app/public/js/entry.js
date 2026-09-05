@@ -10,6 +10,7 @@ let currentStaff = null;   // { id, name, distributor_id, distributor_name }
 let currentOpenVisit = null;
 let capturedLat = null, capturedLng = null;
 let reusePhotoPath = null; // set when the staff picked an existing nearby shop with a photo on file
+let outLat = null, outLng = null; // GPS captured specifically at OUT time, to verify staff is still at the shop
 
 function showMsg(text, type) {
   msg.innerHTML = `<div class="msg ${type}">${text}</div>`;
@@ -28,6 +29,7 @@ function resetToPin() {
   currentStaff = null;
   currentOpenVisit = null;
   capturedLat = null; capturedLng = null;
+  outLat = null; outLng = null;
   reusePhotoPath = null;
   gpsStatus.textContent = '';
   document.getElementById('pin').value = '';
@@ -72,6 +74,17 @@ pinForm.addEventListener('submit', async (e) => {
     if (currentOpenVisit) {
       document.getElementById('openShopName').textContent = currentOpenVisit.shop_name;
       showScreen('out');
+      const outStatus = document.getElementById('outGpsStatus');
+      outStatus.textContent = 'Confirming your location...';
+      const pos = await getGpsPosition();
+      if (pos) {
+        outLat = pos.lat;
+        outLng = pos.lng;
+        outStatus.textContent = '✅ Location confirmed.';
+      } else {
+        outLat = null; outLng = null;
+        outStatus.textContent = '⚠️ Could not get your location — GPS check will be skipped for this OUT.';
+      }
       return;
     }
 
@@ -284,7 +297,9 @@ outForm.addEventListener('submit', async (e) => {
     orders_ltrs: document.getElementById('ordersLtrs').value,
     collection_rupees: document.getElementById('collectionRs').value,
     active_tertiary: document.getElementById('activeTertiary').value,
-    remarks_feedback: document.getElementById('remarks').value
+    remarks_feedback: document.getElementById('remarks').value,
+    latitude: outLat,
+    longitude: outLng
   };
 
   try {
