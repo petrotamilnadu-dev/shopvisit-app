@@ -17,6 +17,16 @@ function fmtDT(t) {
 function fmtTime(t) {
   return t ? new Date(t + 'Z').toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' }) : '-';
 }
+function fmtDuration(inTime, outTime) {
+  if (!inTime) return '-';
+  const start = new Date(inTime + 'Z').getTime();
+  const end = outTime ? new Date(outTime + 'Z').getTime() : Date.now();
+  const totalMinutes = Math.max(0, Math.round((end - start) / 60000));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const label = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+  return outTime ? label : `${label} <span class="small">(so far)</span>`;
+}
 
 async function init() {
   const meRes = await fetch('/api/auth/me');
@@ -37,7 +47,7 @@ async function init() {
 
   loadOpenVisits();
   loadVisits();
-  setInterval(loadOpenVisits, 30000); // refresh "live" section every 30s
+  setInterval(() => { loadOpenVisits(); loadVisits(); }, 30000); // keep "live" data + open durations current
 }
 
 async function loadStaffOptions() {
@@ -110,6 +120,7 @@ async function loadVisits() {
       <td>${v.segment || '-'}</td>
       <td>${v.contact_number || '-'}</td>
       <td>${v.location_text || '-'}${v.latitude ? ' <span class="small">(GPS)</span>' : ''}</td>
+      <td>${fmtDuration(v.in_time, v.out_time)}</td>
       <td>${fmtDT(v.in_time)}</td>
       <td>${v.out_time ? fmtDT(v.out_time) : '<span class="badge off">Open</span>'}</td>
       <td>${v.orders_ltrs ?? '-'}</td>
