@@ -127,12 +127,24 @@ router.post('/checkin', (req, res, next) => {
 // Step 2b: Check OUT of the currently open shop.
 router.post('/checkout', (req, res) => {
   try {
-    const { visit_id, staff_id, orders_ltrs, collection_rupees, active_tertiary, remarks_feedback } = req.body;
+    const { visit_id, staff_id, orders_ltrs, collection_rupees, active_tertiary, remarks_feedback, latitude, longitude } = req.body;
     if (!visit_id || !staff_id) return res.status(400).json({ error: 'visit_id and staff_id required' });
 
     const visit = db.prepare('SELECT * FROM visits WHERE id = ? AND staff_id = ?').get(visit_id, staff_id);
     if (!visit) return res.status(404).json({ error: 'Visit not found' });
     if (visit.out_time) return res.status(409).json({ error: 'This visit is already checked out.' });
+
+    // GPS lock: staff must still be near the shop's IN location to give OUT. If either point
+    // is missing (older data, GPS denied), skip the check rather than blocking them.
+    const MAX_OUT_DISTANCE_M = 200;
+    if (visit.latitude && visit.longitude && latitude && longitude) {
+      const distance = distanceMeters(visit.latitude, visit.longitude, Number(latitude), Number(longitude));
+      if (distance > MAX_OUT_DISTANCE_M) {
+        return res.status(409).json({
+          error: `You appear to be about ${Math.round(distance)}m from this shop. Please give OUT time while you're still there. If you've already left, ask your TM, Distributor, or Admin to release this visit from the dashboard.`
+        });
+      }
+    }
 
     db.prepare(`
       UPDATE visits SET orders_ltrs = ?, collection_rupees = ?, active_tertiary = ?, remarks_feedback = ?, out_time = datetime('now')

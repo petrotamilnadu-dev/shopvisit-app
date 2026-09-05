@@ -188,4 +188,45 @@ router.put('/visits/:id', (req, res) => {
   res.json({ ok: true, visit: updated });
 });
 
+// POST /api/reports/visits/:id/release — force-close a stuck OPEN visit (no GPS check).
+// Available to Admin, TM (their own distributors only), and Distributor (their own distributor only).
+router.post('/visits/:id/release', (req, res) => {
+  const user = req.session.user;
+  if (!['admin', 'tm', 'distributor'].includes(user.role)) return res.status(403).json({ error: 'Not authorized to release visits' });
+
+  const visit = db.prepare('SELECT * FROM visits WHERE id = ?').get(req.params.id);
+  if (!visit) return res.status(404).json({ error: 'Visit not found' });
+  if (visit.out_time) return res.status(409).json({ error: 'This visit is already checked out.' });
+
+  if (user.role === 'tm') {
+    const allowed = db.prepare('SELECT distributor_id FROM tm_distributors WHERE tm_id = ?').all(user.tm_id).map(r => r.distributor_id);
+    if (!allowed.includes(visit.distributor_id)) return res.status(403).json({ error: 'Not authorized for this distributor' });
+  } else if (user.role === 'distributor') {
+    if (visit.distributor_id !== user.distributor_id) return res.status(403).json({ error: 'Not authorized for this distributor' });
+  }
+
+  const { orders_ltrs, collection_rupees, active_tertiary, remarks_feedback } = req.body || {};
+  const auditNote = `[Released by ${user.role.toUpperCase()} — ${user.username}, staff did not check out]`;
+  const finalRemarks = remarks_feedback ? `${remarks_feedback} ${auditNote}` : auditNote;
+
+  db.prepare(`
+    UPDATE visits SET orders_ltrs = COALESCE(?, orders_ltrs), collection_rupees = COALESCE(?, collection_rupees),
+      active_tertiary = COALESCE(?, active_tertiary), remarks_feedback = ?, out_time = datetime('now')
+    WHERE id = ?
+  `).run(
+    orders_ltrs !== undefined && orders_ltrs !== '' ? orders_ltrs : null,
+    collection_rupees !== undefined && collection_rupees !== '' ? collection_rupees : null,
+    active_tertiary !== undefined && active_tertiary !== '' ? active_tertiary : null,
+    finalRemarks,
+    req.params.id
+  );
+
+  const updated = db.prepare(`
+    SELECT visits.*, staff.name as staff_name, distributors.name as distributor_name
+    FROM visits JOIN staff ON visits.staff_id = staff.id JOIN distributors ON visits.distributor_id = distributors.id
+    WHERE visits.id = ?
+  `).get(req.params.id);
+  res.json({ ok: true, visit: updated });
+});
+
 module.exports = router;
