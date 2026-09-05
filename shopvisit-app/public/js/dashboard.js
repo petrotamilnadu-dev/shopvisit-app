@@ -25,7 +25,7 @@ function fmtDuration(inTime, outTime) {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   const label = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-  return outTime ? label : `${label} <span class="small">(so far)</span>`;
+  return outTime ? label : `<span class="live-dot"></span>${label}`;
 }
 
 async function init() {
@@ -113,22 +113,22 @@ async function loadVisits() {
   const canEdit = currentRole === 'admin' || currentRole === 'tm';
   tbody.innerHTML = visits.map(v => `
     <tr>
-      <td>${v.staff_name}</td>
-      <td>${v.shop_name}</td>
-      <td>${v.shop_type || '-'}</td>
-      <td>${v.outlet_status || '-'}</td>
-      <td>${v.segment || '-'}</td>
-      <td>${v.contact_number || '-'}</td>
-      <td>${v.location_text || '-'}${v.latitude ? ' <span class="small">(GPS)</span>' : ''}</td>
-      <td>${fmtDuration(v.in_time, v.out_time)}</td>
-      <td>${fmtDT(v.in_time)}</td>
-      <td>${v.out_time ? fmtDT(v.out_time) : '<span class="badge off">Open</span>'}</td>
-      <td>${v.orders_ltrs ?? '-'}</td>
-      <td>${v.collection_rupees ?? '-'}</td>
-      <td>${v.active_tertiary || '-'}</td>
-      <td>${v.remarks_feedback || '-'}</td>
-      <td>${v.photo_path ? `<a class="link" href="${v.photo_path}" target="_blank">View</a>` : '-'}</td>
-      <td>${canEdit ? `<button type="button" class="secondary" onclick="openEditVisit(${v.id})">Edit</button>` : ''}</td>
+      <td><span class="cell-clip" title="${v.staff_name}">${v.staff_name}</span></td>
+      <td><span class="cell-clip" title="${v.shop_name}">${v.shop_name}</span></td>
+      <td class="cell-nowrap">${v.shop_type || '-'}</td>
+      <td class="cell-nowrap">${v.outlet_status || '-'}</td>
+      <td class="cell-nowrap">${v.segment || '-'}</td>
+      <td class="cell-nowrap">${v.contact_number || '-'}</td>
+      <td><span class="cell-clip" title="${v.location_text || ''}">${v.location_text || '-'}${v.latitude ? ' <span class="small">(GPS)</span>' : ''}</span></td>
+      <td class="cell-nowrap">${fmtDuration(v.in_time, v.out_time)}</td>
+      <td class="cell-nowrap">${fmtDT(v.in_time)}</td>
+      <td class="cell-nowrap">${v.out_time ? fmtDT(v.out_time) : '<span class="badge off">Open</span>'}</td>
+      <td class="cell-num">${v.orders_ltrs ?? '-'}</td>
+      <td class="cell-num">${v.collection_rupees ?? '-'}</td>
+      <td><span class="cell-clip" title="${v.active_tertiary || ''}">${v.active_tertiary || '-'}</span></td>
+      <td><span class="cell-clip" title="${v.remarks_feedback || ''}">${v.remarks_feedback || '-'}</span></td>
+      <td class="cell-nowrap">${v.photo_path ? `<a class="link" href="${v.photo_path}" target="_blank">View</a>` : '-'}</td>
+      <td class="cell-nowrap">${canEdit ? `<button type="button" class="secondary" onclick="openEditVisit(${v.id})">Edit</button>` : ''}</td>
     </tr>
   `).join('');
 }
