@@ -47,6 +47,7 @@ async function init() {
 
   loadOpenVisits();
   loadVisits();
+  initColumnResize();
   setInterval(() => { loadOpenVisits(); loadVisits(); }, 30000); // keep "live" data + open durations current
 }
 
@@ -113,20 +114,20 @@ async function loadVisits() {
   const canEdit = currentRole === 'admin' || currentRole === 'tm';
   tbody.innerHTML = visits.map(v => `
     <tr>
-      <td><span class="cell-clip" title="${v.staff_name}">${v.staff_name}</span></td>
-      <td><span class="cell-clip" title="${v.shop_name}">${v.shop_name}</span></td>
+      <td>${v.staff_name}</td>
+      <td>${v.shop_name}</td>
       <td class="cell-nowrap">${v.shop_type || '-'}</td>
       <td class="cell-nowrap">${v.outlet_status || '-'}</td>
       <td class="cell-nowrap">${v.segment || '-'}</td>
       <td class="cell-nowrap">${v.contact_number || '-'}</td>
-      <td><span class="cell-clip" title="${v.location_text || ''}">${v.location_text || '-'}${v.latitude ? ' <span class="small">(GPS)</span>' : ''}</span></td>
+      <td>${v.location_text || '-'}${v.latitude ? ' <span class="small">(GPS)</span>' : ''}</td>
       <td class="cell-nowrap">${fmtDuration(v.in_time, v.out_time)}</td>
-      <td class="cell-nowrap">${fmtDT(v.in_time)}</td>
-      <td class="cell-nowrap">${v.out_time ? fmtDT(v.out_time) : '<span class="badge off">Open</span>'}</td>
+      <td>${fmtDT(v.in_time)}</td>
+      <td>${v.out_time ? fmtDT(v.out_time) : '<span class="badge off">Open</span>'}</td>
       <td class="cell-num">${v.orders_ltrs ?? '-'}</td>
       <td class="cell-num">${v.collection_rupees ?? '-'}</td>
-      <td><span class="cell-clip" title="${v.active_tertiary || ''}">${v.active_tertiary || '-'}</span></td>
-      <td><span class="cell-clip" title="${v.remarks_feedback || ''}">${v.remarks_feedback || '-'}</span></td>
+      <td>${v.active_tertiary || '-'}</td>
+      <td>${v.remarks_feedback || '-'}</td>
       <td class="cell-nowrap">${v.photo_path ? `<a class="link" href="${v.photo_path}" target="_blank">View</a>` : '-'}</td>
       <td class="cell-nowrap">${canEdit ? `<button type="button" class="secondary" onclick="openEditVisit(${v.id})">Edit</button>` : ''}</td>
     </tr>
@@ -181,6 +182,35 @@ document.getElementById('saveEditBtn').addEventListener('click', async () => {
     alert('Failed to save: ' + (data.error || 'Unknown error'));
   }
 });
+
+/* ---------- Excel-style column resize (drag the handle at the right edge of a header) ---------- */
+function initColumnResize() {
+  let activeTh = null, startX = 0, startWidth = 0;
+
+  document.querySelectorAll('#visitTable .col-resizer').forEach(handle => {
+    handle.addEventListener('mousedown', (e) => {
+      activeTh = handle.closest('th');
+      startX = e.pageX;
+      startWidth = activeTh.offsetWidth;
+      handle.classList.add('resizing');
+      document.body.style.cursor = 'col-resize';
+      e.preventDefault();
+    });
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!activeTh) return;
+    const newWidth = Math.max(50, startWidth + (e.pageX - startX));
+    activeTh.style.width = newWidth + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!activeTh) return;
+    activeTh.querySelector('.col-resizer')?.classList.remove('resizing');
+    activeTh = null;
+    document.body.style.cursor = '';
+  });
+}
 
 document.getElementById('refreshBtn').addEventListener('click', () => { loadOpenVisits(); loadVisits(); });
 distFilter.addEventListener('change', async () => {
