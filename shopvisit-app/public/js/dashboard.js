@@ -120,18 +120,18 @@ async function loadVisits() {
     <tr>
       <td>${v.staff_name}</td>
       <td>${v.shop_name}</td>
+      <td>${v.remarks_feedback || '-'}</td>
+      <td class="cell-nowrap">${fmtDuration(v.in_time, v.out_time)}</td>
       <td class="cell-nowrap">${v.shop_type || '-'}</td>
       <td class="cell-nowrap">${v.outlet_status || '-'}</td>
       <td class="cell-nowrap">${v.segment || '-'}</td>
       <td class="cell-nowrap">${v.contact_number || '-'}</td>
       <td>${v.location_text || '-'}${v.latitude ? ' <span class="small">(GPS)</span>' : ''}</td>
-      <td class="cell-nowrap">${fmtDuration(v.in_time, v.out_time)}</td>
       <td>${fmtDT(v.in_time)}</td>
       <td>${v.out_time ? fmtDT(v.out_time) : '<span class="badge off">Open</span>'}</td>
       <td class="cell-num">${v.orders_ltrs ?? '-'}</td>
       <td class="cell-num">${v.collection_rupees ?? '-'}</td>
       <td>${v.active_tertiary || '-'}</td>
-      <td>${v.remarks_feedback || '-'}</td>
       <td class="cell-nowrap">${v.photo_path ? `<a class="link" href="${v.photo_path}" target="_blank">View</a>` : '-'}</td>
       <td class="cell-nowrap">${canEdit ? `<button type="button" class="secondary" onclick="openEditVisit(${v.id})">Edit</button>` : ''}</td>
     </tr>
