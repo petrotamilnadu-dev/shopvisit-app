@@ -38,11 +38,24 @@ function fmtTime(t) {
   return new Date(t + 'Z').toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
 }
 
+function fmtDuration(inTime, outTime) {
+  if (!inTime) return '-';
+  const start = new Date(inTime + 'Z').getTime();
+  const end = outTime ? new Date(outTime + 'Z').getTime() : Date.now();
+  const totalMinutes = Math.max(0, Math.round((end - start) / 60000));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const label = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+  return outTime ? label : `${label} (so far)`;
+}
+
 function visitRowsHtml(visits) {
   return visits.map(v => `
     <tr>
       <td>${v.staff_name}</td>
       <td>${v.shop_name}</td>
+      <td>${v.remarks_feedback || '-'}</td>
+      <td>${fmtDuration(v.in_time, v.out_time)}</td>
       <td>${v.shop_type || '-'}</td>
       <td>${v.outlet_status || '-'}</td>
       <td>${v.segment || '-'}</td>
@@ -53,15 +66,14 @@ function visitRowsHtml(visits) {
       <td>${v.orders_ltrs ?? '-'}</td>
       <td>${v.collection_rupees ?? '-'}</td>
       <td>${v.active_tertiary || '-'}</td>
-      <td>${v.remarks_feedback || '-'}</td>
     </tr>`).join('');
 }
 
 const TABLE_HEAD = `
   <tr style="background:#eee;">
-    <th>Staff</th><th>Shop</th><th>Type</th><th>Outlet</th><th>Segment</th><th>Contact</th>
-    <th>Location</th><th>IN Time</th><th>OUT Time</th><th>Orders (Ltrs)</th><th>Collection (Rs)</th>
-    <th>Active/Tertiary</th><th>Remarks</th>
+    <th>Staff</th><th>Shop</th><th>Remarks</th><th>Time Spent</th><th>Type</th><th>Outlet</th>
+    <th>Segment</th><th>Contact</th><th>Location</th><th>IN Time</th><th>OUT Time</th>
+    <th>Orders (Ltrs)</th><th>Collection (Rs)</th><th>Active/Tertiary</th>
   </tr>`;
 
 // Daily summary email for one distributor (all their staff visits for the day)
@@ -76,7 +88,7 @@ async function sendDistributorDailySummary({ distributorEmail, distributorName, 
       ${visitRowsHtml(visits)}
     </table>
   `;
-  return sendMail({ to: distributorEmail, subject: `Daily Shop Visit Summary — ${distributorName} — ${dateStr}`, html });
+  return sendMail({ to: distributorEmail, subject: `Daily Shop Visit Summary — ${distributorName} (${dateStr})`, html });
 }
 
 // Daily summary email for one TM (across all their assigned distributors)
@@ -92,7 +104,7 @@ async function sendTmDailySummary({ tmEmail, tmName, visitsByDistributor, dateSt
       ${visitRowsHtml(visits)}
     </table><br/>`;
   }
-  return sendMail({ to: tmEmail, subject: `Daily Shop Visit Summary — ${tmName} — ${dateStr}`, html });
+  return sendMail({ to: tmEmail, subject: `Daily Shop Visit Summary — ${tmName} (${dateStr})`, html });
 }
 
 // Morning Excel report — sent to Admin (all distributors) or a TM (their assigned distributors)

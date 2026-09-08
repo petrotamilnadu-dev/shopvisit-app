@@ -4,7 +4,14 @@ const { sendDistributorDailySummary, sendTmDailySummary, sendMorningExcelReport 
 const { buildVisitsExcelBuffer } = require('./excelReport');
 
 async function runDailySummary() {
-  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD
+  const now = new Date();
+  const istParts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: 'numeric'
+  }).formatToParts(now);
+  const dd = istParts.find(p => p.type === 'day').value;
+  const mm = istParts.find(p => p.type === 'month').value;
+  const yyyy = istParts.find(p => p.type === 'year').value;
+  const todayStr = `${dd}-${mm}-${yyyy}`; // DD-MM-YYYY, e.g. 07-09-2026
 
   console.log(`[cron] Running daily summary for ${todayStr}`);
 
