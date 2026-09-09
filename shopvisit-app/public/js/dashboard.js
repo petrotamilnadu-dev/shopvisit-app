@@ -47,8 +47,9 @@ async function init() {
 
   loadOpenVisits();
   loadVisits();
+  loadStaffCounts();
   initColumnResize();
-  setInterval(() => { loadOpenVisits(); loadVisits(); }, 30000); // keep "live" data + open durations current
+  setInterval(() => { loadOpenVisits(); loadVisits(); loadStaffCounts(); }, 30000); // keep "live" data + open durations current
 }
 
 async function loadStaffOptions() {
@@ -84,6 +85,31 @@ async function loadOpenVisits() {
         ${canRelease ? `<button type="button" class="secondary" style="margin-left:8px;" onclick="releaseVisit(${v.id}, '${v.shop_name.replace(/'/g, "\\'")}')">Release</button>` : ''}
       </div>
     </div>
+  `).join('');
+}
+
+async function loadStaffCounts() {
+  const from = document.getElementById('fromDate').value;
+  const to = document.getElementById('toDate').value;
+  const dist = distFilter.value;
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  if (dist) params.set('distributor_id', dist);
+
+  const res = await fetch('/api/reports/staff-visit-counts?' + params.toString());
+  const counts = await res.json();
+  const list = document.getElementById('staffCountList');
+  if (!counts.length) {
+    list.innerHTML = '<p class="small">No staff found.</p>';
+    return;
+  }
+  const showDistName = !dist;
+  list.innerHTML = counts.map(c => `
+    <span class="staff-count-chip ${c.visit_count === 0 ? 'zero' : ''}">
+      ${c.staff_name}${showDistName ? ` <span class="small">(${c.distributor_name})</span>` : ''} —
+      <span class="count">${c.visit_count}</span>
+    </span>
   `).join('');
 }
 
@@ -229,12 +255,13 @@ async function releaseVisit(visitId, shopName) {
   }
 }
 
-document.getElementById('refreshBtn').addEventListener('click', () => { loadOpenVisits(); loadVisits(); });
+document.getElementById('refreshBtn').addEventListener('click', () => { loadOpenVisits(); loadVisits(); loadStaffCounts(); });
 distFilter.addEventListener('change', async () => {
   staffFilter.value = ''; // reset staff choice when distributor changes
   await loadStaffOptions();
   loadOpenVisits();
   loadVisits();
+  loadStaffCounts();
 });
 staffFilter.addEventListener('change', () => { loadOpenVisits(); loadVisits(); });
 document.getElementById('logoutBtn').addEventListener('click', async () => {
