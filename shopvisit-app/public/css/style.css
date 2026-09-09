@@ -167,6 +167,25 @@ th { color: var(--muted); font-weight: 600; font-size: .75rem; text-transform: u
 .badge.on { background: #e4f3e9; color: var(--accent-dark); }
 .badge.off { background: #f0e5e2; color: var(--warn); }
 
+.staff-count-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: .82rem;
+  border: 1px solid var(--line);
+  background: #fff;
+  margin: 0 6px 6px 0;
+}
+.staff-count-chip .count { font-weight: 700; }
+.staff-count-chip.zero {
+  background: #fbe7e2;
+  border-color: #f0c9bd;
+  color: var(--warn);
+}
+.staff-count-chip.zero .count { color: var(--warn); }
+
 .stat {
   display: inline-block;
   background: var(--card);
