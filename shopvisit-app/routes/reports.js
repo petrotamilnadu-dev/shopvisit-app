@@ -82,6 +82,48 @@ router.get('/open-visits', (req, res) => {
   res.json(db.prepare(query).all(...params));
 });
 
+// GET /api/reports/staff-visit-counts — how many visits each staff member made in the date
+// range (defaults to today), including staff with ZERO visits so inactivity is easy to spot.
+router.get('/staff-visit-counts', (req, res) => {
+  const user = req.session.user;
+  const { from, to, distributor_id } = req.query;
+
+  let allowedDistributorIds = null; // null = all (admin, asm)
+  if (user.role === 'distributor') {
+    allowedDistributorIds = [user.distributor_id];
+  } else if (user.role === 'tm') {
+    allowedDistributorIds = db.prepare('SELECT distributor_id FROM tm_distributors WHERE tm_id = ?')
+      .all(user.tm_id).map(r => r.distributor_id);
+  }
+
+  let query = `
+    SELECT staff.id as staff_id, staff.name as staff_name, distributors.name as distributor_name,
+      COUNT(visits.id) as visit_count
+    FROM staff
+    JOIN distributors ON staff.distributor_id = distributors.id
+    LEFT JOIN visits ON visits.staff_id = staff.id
+      ${from ? "AND date(visits.in_time) >= date(?)" : ''}
+      ${to ? "AND date(visits.in_time) <= date(?)" : ''}
+    WHERE staff.active = 1
+  `;
+  const params = [];
+  if (from) params.push(from);
+  if (to) params.push(to);
+
+  if (allowedDistributorIds) {
+    if (allowedDistributorIds.length === 0) return res.json([]);
+    query += ` AND staff.distributor_id IN (${allowedDistributorIds.map(() => '?').join(',')})`;
+    params.push(...allowedDistributorIds);
+  }
+  if (distributor_id) {
+    query += ' AND staff.distributor_id = ?';
+    params.push(distributor_id);
+  }
+  query += ' GROUP BY staff.id ORDER BY visit_count ASC, staff.name ASC';
+
+  res.json(db.prepare(query).all(...params));
+});
+
 // Staff list scoped to the logged-in user, for the dashboard "Staff" filter dropdown.
 // Optionally narrowed further by ?distributor_id= (e.g. when the Distributor filter changes).
 router.get('/staff-list', (req, res) => {
