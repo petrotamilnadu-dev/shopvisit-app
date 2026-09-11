@@ -141,17 +141,18 @@ router.delete('/staff/:id', (req, res) => {
 
 /* ---------- Login users for Distributor / TM dashboard access ---------- */
 router.get('/users', (req, res) => {
-  res.json(db.prepare("SELECT id, username, role, distributor_id, tm_id FROM users").all());
+  res.json(db.prepare("SELECT id, username, role, distributor_id, tm_id, email FROM users").all());
 });
 
 router.post('/users', (req, res) => {
-  const { username, password, role, distributor_id, tm_id } = req.body;
+  const { username, password, role, distributor_id, tm_id, email } = req.body;
   if (!username || !password || !role) return res.status(400).json({ error: 'username, password, role required' });
+  if (role === 'asm' && !email) return res.status(400).json({ error: 'Email is required for ASM logins (used to send the daily summary report)' });
   const hash = bcrypt.hashSync(password, 10);
   try {
     const info = db.prepare(
-      'INSERT INTO users (username, password_hash, role, distributor_id, tm_id) VALUES (?, ?, ?, ?, ?)'
-    ).run(username, hash, role, distributor_id || null, tm_id || null);
+      'INSERT INTO users (username, password_hash, role, distributor_id, tm_id, email) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(username, hash, role, distributor_id || null, tm_id || null, email || null);
     res.json({ id: info.lastInsertRowid });
   } catch (e) {
     res.status(400).json({ error: 'Username already exists' });
@@ -167,6 +168,12 @@ router.post('/users/:id/reset-password', (req, res) => {
   const { newPassword } = req.body;
   const hash = bcrypt.hashSync(newPassword, 10);
   db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, req.params.id);
+  res.json({ ok: true });
+});
+
+router.post('/users/:id/update-email', (req, res) => {
+  const { email } = req.body;
+  db.prepare('UPDATE users SET email = ? WHERE id = ?').run(email || null, req.params.id);
   res.json({ ok: true });
 });
 
