@@ -220,6 +220,8 @@ document.getElementById('addStaffBtn').addEventListener('click', async () => {
 async function refreshUserLinkOptions() {
   const role = document.getElementById('userRole').value;
   const wrap = document.getElementById('userLinkWrap');
+  const emailLabel = document.getElementById('userEmailLabel');
+  emailLabel.textContent = role === 'asm' ? 'Email (required — gets the 9 PM daily summary report)' : 'Email (optional)';
   if (role === 'distributor') {
     const dists = await (await fetch('/api/admin/distributors')).json();
     wrap.innerHTML = `<label for="userLinkSelect">Distributor</label>
@@ -241,13 +243,25 @@ async function loadUsers() {
   const list = document.getElementById('userList');
   list.innerHTML = '<h3 style="margin-top:0;">Dashboard Logins</h3>' + (users.length ? users.map(u => `
     <div class="list-item">
-      <div><b>${u.username}</b> <span class="small">(${u.role})</span></div>
+      <div><b>${u.username}</b> <span class="small">(${u.role}${u.email ? ' — ' + u.email : (u.role === 'asm' ? ' — no email set!' : '')})</span></div>
       <div>
-        ${u.role !== 'admin' ? `<button class="secondary" onclick="resetPw(${u.id})">Reset Password</button>
+        ${u.role !== 'admin' ? `<button class="secondary" onclick="editUserEmail(${u.id}, '${(u.email || '').replace(/'/g, "\\'")}')">Edit Email</button>
+        <button class="secondary" onclick="resetPw(${u.id})">Reset Password</button>
         <button class="danger" onclick="deleteUser(${u.id})">Delete</button>` : ''}
       </div>
     </div>
   `).join('') : '<p class="small">No logins created yet.</p>');
+}
+
+async function editUserEmail(id, currentEmail) {
+  const email = prompt('Enter email for this login (used to send reports, e.g. for ASM):', currentEmail);
+  if (email === null) return;
+  await fetch(`/api/admin/users/${id}/update-email`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email.trim() })
+  });
+  showMsg('Email updated', 'ok');
+  loadUsers();
 }
 
 async function resetPw(id) {
@@ -270,10 +284,12 @@ document.getElementById('addUserBtn').addEventListener('click', async () => {
   const username = document.getElementById('userUsername').value.trim();
   const password = document.getElementById('userPassword').value.trim();
   const role = document.getElementById('userRole').value;
+  const email = document.getElementById('userEmail').value.trim();
   const linkId = document.getElementById('userLinkSelect')?.value;
   if (!username || !password) return showMsg('Fill all fields', 'err');
   if (role !== 'asm' && !linkId) return showMsg('Fill all fields', 'err');
-  const body = { username, password, role };
+  if (role === 'asm' && !email) return showMsg('Email is required for ASM logins', 'err');
+  const body = { username, password, role, email };
   if (role === 'distributor') body.distributor_id = linkId;
   else if (role === 'tm') body.tm_id = linkId;
   const res = await fetch('/api/admin/users', {
@@ -284,6 +300,7 @@ document.getElementById('addUserBtn').addEventListener('click', async () => {
   if (!res.ok) return showMsg(data.error || 'Failed to create login', 'err');
   document.getElementById('userUsername').value = '';
   document.getElementById('userPassword').value = '';
+  document.getElementById('userEmail').value = '';
   showMsg('Login created', 'ok');
   loadUsers();
 });
