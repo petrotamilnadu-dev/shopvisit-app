@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS users (
   role TEXT NOT NULL CHECK(role IN ('admin','distributor','tm','asm')),
   distributor_id INTEGER,
   tm_id INTEGER,
+  email TEXT,
   created_at TEXT DEFAULT (datetime('now'))
 );
 `);
@@ -105,6 +106,14 @@ if (usersTableSql && !usersTableSql.sql.includes("'asm'")) {
     DROP TABLE users_old;
   `);
   console.log('Migrated users table to support the ASM role.');
+}
+
+// Migration: add the 'email' column for databases created before it existed (ADD COLUMN is
+// safe here since it's just a new nullable column, no CHECK constraint involved).
+const usersColumns = db.prepare("PRAGMA table_info(users)").all().map(c => c.name);
+if (!usersColumns.includes('email')) {
+  db.exec('ALTER TABLE users ADD COLUMN email TEXT');
+  console.log('Migrated users table to add the email column (for ASM report delivery).');
 }
 
 // Seed default admin user if none exists

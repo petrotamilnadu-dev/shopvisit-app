@@ -68,6 +68,36 @@ async function runDailySummary() {
     else stats.skipped++;
   }
 
+  // --- ASM summaries (see ALL distributors, same as their live dashboard) ---
+  const asmUsers = db.prepare("SELECT * FROM users WHERE role = 'asm'").all();
+  if (asmUsers.length) {
+    const allDistributors = db.prepare('SELECT * FROM distributors WHERE active = 1').all();
+    const visitsByDistributorForAsm = {};
+    for (const d of allDistributors) {
+      visitsByDistributorForAsm[d.name] = db.prepare(`
+        SELECT visits.*, staff.name as staff_name
+        FROM visits JOIN staff ON visits.staff_id = staff.id
+        WHERE visits.distributor_id = ? AND date(visits.in_time) = date('now', 'localtime')
+        ORDER BY visits.in_time
+      `).all(d.id);
+    }
+    for (const asmUser of asmUsers) {
+      if (!asmUser.email) {
+        stats.errors.push(`${asmUser.username} (ASM): no email set — go to Admin → Dashboard Logins → Edit Email`);
+        continue;
+      }
+      const result = await sendTmDailySummary({
+        tmEmail: asmUser.email,
+        tmName: asmUser.username,
+        visitsByDistributor: visitsByDistributorForAsm,
+        dateStr: todayStr
+      });
+      if (result.sent) stats.sent++;
+      else if (result.error) stats.errors.push(`${asmUser.username} (ASM): ${result.error}`);
+      else stats.skipped++;
+    }
+  }
+
   console.log('[cron] Daily summary run complete', stats);
   return stats;
 }
