@@ -105,7 +105,6 @@ pinForm.addEventListener('submit', async (e) => {
     }
     // No GPS or no nearby matches — go straight to the blank IN form (genuinely new shop)
     reusePhotoPath = null;
-    document.getElementById('photo').required = true;
     document.getElementById('photoReuseNote').style.display = 'none';
     showScreen('in');
   } catch (err) {
@@ -152,8 +151,6 @@ function prefillInForm(shop) {
   gpsStatus.textContent = '✅ Location already captured for this shop.';
 
   // Repeat visit — photo is optional, reuse the one already on file unless staff retakes it
-  const photoInput = document.getElementById('photo');
-  photoInput.required = false;
   const note = document.getElementById('photoReuseNote');
   if (shop.photo_path) {
     reusePhotoPath = shop.photo_path;
@@ -169,7 +166,6 @@ function prefillInForm(shop) {
 document.getElementById('newShopBtn').addEventListener('click', () => {
   inForm.reset();
   reusePhotoPath = null;
-  document.getElementById('photo').required = true;
   document.getElementById('photoReuseNote').style.display = 'none';
   gpsStatus.textContent = capturedLat ? '✅ Location already captured.' : '';
   showScreen('in');
@@ -288,6 +284,13 @@ inForm.addEventListener('submit', async (e) => {
 /* ---------- Screen 3: Check OUT ---------- */
 outForm.addEventListener('submit', async (e) => {
   e.preventDefault();
+
+  const remarksText = document.getElementById('remarks').value.trim();
+  const wordCount = remarksText ? remarksText.split(/\s+/).filter(Boolean).length : 0;
+  if (wordCount < 3) {
+    return showMsg('❌ Please write at least 3 words in Remarks & Feedback (e.g. what was discussed, stock status, any issues).', 'err');
+  }
+
   const btn = document.getElementById('checkoutBtn');
   btn.disabled = true; btn.textContent = 'Submitting...';
 
@@ -297,7 +300,7 @@ outForm.addEventListener('submit', async (e) => {
     orders_ltrs: document.getElementById('ordersLtrs').value,
     collection_rupees: document.getElementById('collectionRs').value,
     active_tertiary: document.getElementById('activeTertiary').value,
-    remarks_feedback: document.getElementById('remarks').value,
+    remarks_feedback: remarksText,
     latitude: outLat,
     longitude: outLng
   };

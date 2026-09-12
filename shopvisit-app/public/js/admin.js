@@ -322,6 +322,15 @@ document.getElementById('testMorningReportBtn').addEventListener('click', async 
   showSummaryStats(data);
 });
 
+document.getElementById('testAutoReleaseBtn').addEventListener('click', async () => {
+  if (!confirm('This will force-close EVERY currently open visit across all Distributors. Continue?')) return;
+  showMsg('Running auto-release...', 'ok');
+  const res = await fetch('/api/admin/test-auto-release', { method: 'POST' });
+  const data = await res.json();
+  if (!res.ok) return showMsg('Failed: ' + data.error, 'err');
+  showMsg(`Auto-released ${data.released} stuck visit(s).`, 'ok');
+});
+
 function showSummaryStats(data) {
   if (!data.smtpConfigured) {
     showMsg('⚠️ SMTP_USER / SMTP_PASS are not set in Render\'s Environment Variables — no emails can be sent until you add them.', 'err');
