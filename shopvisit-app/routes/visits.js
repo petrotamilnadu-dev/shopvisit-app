@@ -85,7 +85,9 @@ router.post('/checkin', (req, res, next) => {
 }, (req, res) => {
   try {
     const { staff_id, shop_type, outlet_status, shop_name, location_text, segment, contact_number, latitude, longitude, reuse_photo_path } = req.body;
-    if (!staff_id || !shop_name) return res.status(400).json({ error: 'staff_id and shop_name required' });
+    if (!staff_id || !shop_name || !shop_type || !outlet_status || !location_text || !segment || !contact_number) {
+      return res.status(400).json({ error: 'Shop Name, Location, Contact Number, Shop Type, Segment, and Outlet Status are all required to check in.' });
+    }
 
     const staff = db.prepare('SELECT * FROM staff WHERE id = ? AND active = 1').get(staff_id);
     if (!staff) return res.status(404).json({ error: 'Staff not found' });
@@ -134,6 +136,14 @@ router.post('/checkout', (req, res) => {
     if (!visit) return res.status(404).json({ error: 'Visit not found' });
     if (visit.out_time) return res.status(409).json({ error: 'This visit is already checked out.' });
 
+    if (!orders_ltrs || !collection_rupees || !active_tertiary || !remarks_feedback) {
+      return res.status(400).json({ error: 'Orders, Collection, Active/Tertiary, and Remarks & Feedback are all required to check out.' });
+    }
+    const remarksWordCount = String(remarks_feedback).trim().split(/\s+/).filter(Boolean).length;
+    if (remarksWordCount < 3) {
+      return res.status(400).json({ error: 'Remarks & Feedback must be at least 3 words.' });
+    }
+
     // GPS lock: staff must still be near the shop's IN location to give OUT. If either point
     // is missing (older data, GPS denied), skip the check rather than blocking them.
     const MAX_OUT_DISTANCE_M = 200;
@@ -149,7 +159,7 @@ router.post('/checkout', (req, res) => {
     db.prepare(`
       UPDATE visits SET orders_ltrs = ?, collection_rupees = ?, active_tertiary = ?, remarks_feedback = ?, out_time = datetime('now')
       WHERE id = ?
-    `).run(orders_ltrs || null, collection_rupees || null, active_tertiary || null, remarks_feedback || null, visit_id);
+    `).run(orders_ltrs, collection_rupees, active_tertiary, remarks_feedback, visit_id);
 
     const updated = db.prepare('SELECT * FROM visits WHERE id = ?').get(visit_id);
     res.json({ ok: true, visit: updated });
