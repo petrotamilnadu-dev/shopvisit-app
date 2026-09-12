@@ -46,10 +46,10 @@
     <input id="shopName" type="text" placeholder="e.g. Sri Ram Auto Spares" style="text-transform:uppercase;" required>
 
     <label for="location">Location</label>
-    <input id="location" type="text" placeholder="Area / landmark" style="text-transform:uppercase;">
+    <input id="location" type="text" placeholder="Area / landmark" style="text-transform:uppercase;" required>
 
     <label for="contactNumber">Contact Number</label>
-    <input id="contactNumber" type="tel" inputmode="numeric" pattern="\d*" placeholder="10-digit number">
+    <input id="contactNumber" type="tel" inputmode="numeric" pattern="\d*" placeholder="10-digit number" required>
 
     <label>Shop Type</label>
     <div class="row">
@@ -88,16 +88,17 @@
     <div id="outGpsStatus" class="small" style="margin-bottom:10px;"></div>
 
     <label for="ordersLtrs">Orders (in Ltrs)</label>
-    <input id="ordersLtrs" type="tel" inputmode="decimal" pattern="[0-9.]*" placeholder="e.g. 20">
+    <input id="ordersLtrs" type="tel" inputmode="decimal" pattern="[0-9.]*" placeholder="e.g. 20" required>
 
     <label for="collectionRs">Collection (in Rupees)</label>
-    <input id="collectionRs" type="tel" inputmode="decimal" pattern="[0-9.]*" placeholder="e.g. 5000">
+    <input id="collectionRs" type="tel" inputmode="decimal" pattern="[0-9.]*" placeholder="e.g. 5000" required>
 
     <label for="activeTertiary">Active / Tertiary</label>
-    <input id="activeTertiary" type="text" placeholder="e.g. Active">
+    <input id="activeTertiary" type="text" placeholder="e.g. Active" required>
 
     <label for="remarks">Remarks &amp; Feedback</label>
-    <textarea id="remarks" placeholder="Any remarks about this shop visit"></textarea>
+    <textarea id="remarks" placeholder="Any remarks about this shop visit" required></textarea>
+    <div class="small" style="margin-top:4px; color:var(--muted);">Please write at least 3 words about this visit (e.g. what was discussed, stock status, any issues).</div>
 
     <button type="submit" id="checkoutBtn" class="block" style="margin-top:18px;">Check OUT of this Shop</button>
     <button type="button" id="changePinBtn2" class="secondary block" style="margin-top:10px;">Not you? Change PIN</button>
