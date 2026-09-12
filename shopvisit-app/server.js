@@ -4,7 +4,7 @@ const session = require('express-session');
 const path = require('path');
 
 require('./db'); // ensures DB + default admin are set up
-const { scheduleDailySummary, runDailySummary, runMorningExcelReport } = require('./cron');
+const { scheduleDailySummary, runDailySummary, runMorningExcelReport, runAutoRelease } = require('./cron');
 
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
@@ -46,6 +46,15 @@ app.post('/api/admin/test-daily-summary', require('./middleware/auth').requireRo
 app.post('/api/admin/test-morning-report', require('./middleware/auth').requireRole('admin'), async (req, res) => {
   try {
     const stats = await runMorningExcelReport();
+    res.json({ ok: true, ...stats });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/test-auto-release', require('./middleware/auth').requireRole('admin'), async (req, res) => {
+  try {
+    const stats = await runAutoRelease();
     res.json({ ok: true, ...stats });
   } catch (e) {
     res.status(500).json({ error: e.message });

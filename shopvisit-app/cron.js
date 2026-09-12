@@ -167,6 +167,23 @@ async function runMorningExcelReport() {
   return stats;
 }
 
+// Auto-release any still-open visits that nobody manually released (runs before the 9 PM
+// summary, so those visits still show up as completed rather than stuck "Open" forever).
+async function runAutoRelease() {
+  console.log('[cron] Running auto-release for still-open visits');
+  const openVisits = db.prepare('SELECT * FROM visits WHERE out_time IS NULL').all();
+  let released = 0;
+  for (const v of openVisits) {
+    const auditNote = '[Auto-released by system at 8:30 PM — staff did not check out]';
+    const finalRemarks = v.remarks_feedback ? `${v.remarks_feedback} ${auditNote}` : auditNote;
+    db.prepare(`UPDATE visits SET remarks_feedback = ?, out_time = datetime('now') WHERE id = ?`)
+      .run(finalRemarks, v.id);
+    released++;
+  }
+  console.log(`[cron] Auto-released ${released} stuck visit(s)`);
+  return { released };
+}
+
 function scheduleDailySummary() {
   // Default: every day at 9:00 PM IST. Change SUMMARY_CRON_TIME in .env to customize (cron syntax, IST).
   const cronTime = process.env.SUMMARY_CRON_TIME || '0 21 * * *';
@@ -181,6 +198,13 @@ function scheduleDailySummary() {
     runMorningExcelReport().catch(e => console.error('[cron] error:', e));
   }, { timezone: 'Asia/Kolkata' });
   console.log(`[cron] Morning Excel report scheduled: "${morningCronTime}" (Asia/Kolkata)`);
+
+  // Auto-release stuck open visits. Default: 8:30 PM IST (before the 9 PM summary).
+  const autoReleaseCronTime = process.env.AUTO_RELEASE_CRON_TIME || '30 20 * * *';
+  cron.schedule(autoReleaseCronTime, () => {
+    runAutoRelease().catch(e => console.error('[cron] error:', e));
+  }, { timezone: 'Asia/Kolkata' });
+  console.log(`[cron] Auto-release scheduled: "${autoReleaseCronTime}" (Asia/Kolkata)`);
 }
 
-module.exports = { scheduleDailySummary, runDailySummary, runMorningExcelReport };
+module.exports = { scheduleDailySummary, runDailySummary, runMorningExcelReport, runAutoRelease };
