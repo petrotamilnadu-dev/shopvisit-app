@@ -163,6 +163,30 @@ function prefillInForm(shop) {
   }
 }
 
+/* ---------- Duplicate-prevention: check Contact Number against existing shops as they type ---------- */
+const contactDupeWarning = document.getElementById('contactDupeWarning');
+let contactDebounceTimer = null;
+
+document.getElementById('contactNumber').addEventListener('input', () => {
+  clearTimeout(contactDebounceTimer);
+  const num = document.getElementById('contactNumber').value.trim();
+  if (num.length < 6) { contactDupeWarning.style.display = 'none'; return; }
+  contactDebounceTimer = setTimeout(async () => {
+    const res = await fetch(`/api/visits/lookup-by-contact?distributor_id=${currentStaff.distributor_id}&contact_number=${encodeURIComponent(num)}`);
+    const match = res.ok ? await res.json() : null;
+    if (match && match.shop_name !== document.getElementById('shopName').value.trim()) {
+      contactDupeWarning.style.display = 'block';
+      contactDupeWarning.innerHTML = `⚠️ This number is already registered to <b>${match.shop_name}</b>. <button type="button" class="link" id="useDupeShopBtn" style="text-decoration:underline;">Tap to use that shop instead</button>`;
+      document.getElementById('useDupeShopBtn').addEventListener('click', () => {
+        prefillInForm(match);
+        contactDupeWarning.style.display = 'none';
+      });
+    } else {
+      contactDupeWarning.style.display = 'none';
+    }
+  }, 400);
+});
+
 /* ---------- Search for an existing shop by name (fallback when GPS auto-match misses) ---------- */
 const searchShopToggle = document.getElementById('searchShopToggle');
 const searchShopBox = document.getElementById('searchShopBox');
