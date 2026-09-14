@@ -42,6 +42,12 @@
   <form id="inForm" class="card" style="display:none;">
     <p class="small" style="margin-top:0;">New Shop Visit — <b>IN Time</b></p>
 
+    <button type="button" id="searchShopToggle" class="secondary block" style="margin-bottom:14px;">🔍 Search an existing shop</button>
+    <div id="searchShopBox" style="display:none; margin-bottom:14px;">
+      <input type="text" id="searchShopInput" placeholder="Type shop name..." style="text-transform:uppercase;">
+      <div id="searchShopResults" class="small" style="margin-top:8px;"></div>
+    </div>
+
     <label for="shopName">Shop Name</label>
     <input id="shopName" type="text" placeholder="e.g. Sri Ram Auto Spares" style="text-transform:uppercase;" required>
 
