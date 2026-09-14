@@ -72,6 +72,25 @@ router.get('/search-shops', (req, res) => {
   res.json(results);
 });
 
+// Duplicate-prevention: as a staff member types the Contact Number, check if that exact
+// number is already registered to a shop under this distributor (regardless of GPS or name),
+// so they can reuse the existing shop instead of accidentally creating a duplicate.
+router.get('/lookup-by-contact', (req, res) => {
+  const { distributor_id, contact_number } = req.query;
+  if (!distributor_id || !contact_number || contact_number.trim().length < 6) return res.json(null);
+
+  const match = db.prepare(`
+    SELECT shop_name, shop_type, outlet_status, location_text, segment, contact_number, photo_path, MAX(in_time) as last_visit
+    FROM visits
+    WHERE distributor_id = ? AND contact_number = ?
+    GROUP BY shop_name
+    ORDER BY last_visit DESC
+    LIMIT 1
+  `).get(distributor_id, contact_number.trim());
+
+  res.json(match || null);
+});
+
 // Step 1: staff enters their 4-digit PIN. Returns staff identity + whether a shop is
 // currently "open" (checked IN but not yet checked OUT), so the frontend knows which
 // form to show next.
