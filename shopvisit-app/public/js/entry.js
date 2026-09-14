@@ -163,6 +163,48 @@ function prefillInForm(shop) {
   }
 }
 
+/* ---------- Search for an existing shop by name (fallback when GPS auto-match misses) ---------- */
+const searchShopToggle = document.getElementById('searchShopToggle');
+const searchShopBox = document.getElementById('searchShopBox');
+const searchShopInput = document.getElementById('searchShopInput');
+const searchShopResults = document.getElementById('searchShopResults');
+let searchDebounceTimer = null;
+
+searchShopToggle.addEventListener('click', () => {
+  const showing = searchShopBox.style.display !== 'none';
+  searchShopBox.style.display = showing ? 'none' : 'block';
+  searchShopToggle.textContent = showing ? '🔍 Search an existing shop' : '✕ Close search';
+  if (!showing) searchShopInput.focus();
+});
+
+searchShopInput.addEventListener('input', () => {
+  clearTimeout(searchDebounceTimer);
+  const q = searchShopInput.value.trim();
+  if (q.length < 2) { searchShopResults.innerHTML = ''; return; }
+  searchDebounceTimer = setTimeout(async () => {
+    const res = await fetch(`/api/visits/search-shops?distributor_id=${currentStaff.distributor_id}&q=${encodeURIComponent(q)}`);
+    const shops = res.ok ? await res.json() : [];
+    if (!shops.length) {
+      searchShopResults.innerHTML = '<p class="small">No matching shop found — fill the form below for a new shop.</p>';
+      return;
+    }
+    searchShopResults.innerHTML = shops.map((s, i) => `
+      <button type="button" class="block secondary" style="margin-bottom:6px; text-align:left;" data-sidx="${i}">
+        <b>${s.shop_name}</b><br><span class="small">${s.location_text || ''}</span>
+      </button>
+    `).join('');
+    searchShopResults.querySelectorAll('button[data-sidx]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        prefillInForm(shops[Number(btn.dataset.sidx)]);
+        searchShopBox.style.display = 'none';
+        searchShopToggle.textContent = '🔍 Search an existing shop';
+        searchShopInput.value = '';
+        searchShopResults.innerHTML = '';
+      });
+    });
+  }, 300);
+});
+
 document.getElementById('newShopBtn').addEventListener('click', () => {
   inForm.reset();
   reusePhotoPath = null;
