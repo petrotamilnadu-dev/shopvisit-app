@@ -34,7 +34,7 @@ function distanceMeters(lat1, lon1, lat2, lon2) {
 router.get('/nearby-shops', (req, res) => {
   const { distributor_id, lat, lng, radius } = req.query;
   if (!distributor_id || !lat || !lng) return res.status(400).json({ error: 'distributor_id, lat, lng required' });
-  const radiusM = Number(radius) || 100;
+  const radiusM = Number(radius) || 200;
 
   const candidates = db.prepare(`
     SELECT shop_name, shop_type, outlet_status, location_text, segment, contact_number, photo_path, latitude, longitude, MAX(in_time) as last_visit
@@ -51,6 +51,25 @@ router.get('/nearby-shops', (req, res) => {
     .slice(0, 5);
 
   res.json(nearby);
+});
+
+// Fallback for when GPS matching doesn't find a shop (weak signal, first visit had no GPS,
+// etc). Lets a staff member search previously-entered shops for their distributor by name,
+// so they can reuse its stored details/photo without depending on GPS at all.
+router.get('/search-shops', (req, res) => {
+  const { distributor_id, q } = req.query;
+  if (!distributor_id || !q || q.trim().length < 2) return res.json([]);
+
+  const results = db.prepare(`
+    SELECT shop_name, shop_type, outlet_status, location_text, segment, contact_number, photo_path, MAX(in_time) as last_visit
+    FROM visits
+    WHERE distributor_id = ? AND shop_name LIKE ?
+    GROUP BY shop_name
+    ORDER BY last_visit DESC
+    LIMIT 10
+  `).all(distributor_id, `%${q.trim().toUpperCase()}%`);
+
+  res.json(results);
 });
 
 // Step 1: staff enters their 4-digit PIN. Returns staff identity + whether a shop is
